@@ -33,7 +33,16 @@ export default function Footer() {
     };
 
     const handleScroll = () => {
-      if (!sectionRef.current) return;
+      if (!sectionRef.current || !panelRef.current) return;
+      const isMobile = window.innerWidth < 768;
+      if (isMobile) {
+        panelRef.current.style.transform = "none";
+        panelRef.current.style.opacity = "1";
+        panelRef.current.style.pointerEvents = "auto";
+        panelRef.current.style.visibility = "visible";
+        return;
+      }
+
       const rect = sectionRef.current.getBoundingClientRect();
       if (rect.top > window.innerHeight * 1.5) return;
       const scrollDist = sectionRef.current.offsetHeight - window.innerHeight;
@@ -46,6 +55,12 @@ export default function Footer() {
     };
 
     const update = (time) => {
+      const isMobile = window.innerWidth < 768;
+      if (isMobile) {
+        isRunning = false;
+        return;
+      }
+
       const dt = Math.min((time - lastTime) / 1000, 0.1);
       lastTime = time;
 
@@ -73,6 +88,13 @@ export default function Footer() {
       }
     };
 
+    if (window.innerWidth < 768 && panelRef.current) {
+      panelRef.current.style.transform = "none";
+      panelRef.current.style.opacity = "1";
+      panelRef.current.style.pointerEvents = "auto";
+      panelRef.current.style.visibility = "visible";
+    }
+
     window.addEventListener("scroll", handleScroll, { passive: true });
     window.addEventListener("resize", handleScroll, { passive: true });
     handleScroll();
@@ -87,27 +109,22 @@ export default function Footer() {
   return (
     <section
       ref={sectionRef}
-      className="relative w-full h-[180vh] bg-transparent"
+      className="relative w-full md:h-[180vh] bg-transparent"
     >
-      {/* Sticky Full-Screen Viewport */}
-      <div className="sticky top-0 w-full h-screen overflow-y-auto md:overflow-hidden flex flex-col justify-center items-center pointer-events-none">
+      {/* Sticky Full-Screen Viewport on desktop, natural flowing container on phone */}
+      <div className="relative md:sticky top-0 w-full md:h-screen md:overflow-hidden flex flex-col justify-start md:justify-center items-center pointer-events-auto md:pointer-events-none">
 
-        {/* Full-Screen Footer Content (Slides smoothly up from down on scroll) */}
+        {/* Full-Screen Footer Content (Slides smoothly up on desktop; natural flow on phone) */}
         <div
           ref={panelRef}
-          className="w-full h-full min-h-screen bg-zinc-950 border-t border-white/[0.08] shadow-[0_-25px_60px_rgba(0,0,0,0.95)] flex flex-col justify-between items-center px-4 sm:px-6 py-6 sm:py-10 md:py-14 select-none will-change-transform pointer-events-none"
-          style={{
-            transform: "translate3d(0, 100%, 0)",
-            opacity: 0,
-            visibility: "hidden",
-          }}
+          className="w-full bg-zinc-950 border-t border-white/[0.08] shadow-[0_-25px_60px_rgba(0,0,0,0.95)] flex flex-col items-center px-4 sm:px-6 pt-10 pb-8 sm:py-10 md:py-14 select-none will-change-transform md:h-full md:min-h-screen md:justify-between pointer-events-auto md:pointer-events-none"
         >
           {/* Subtle Background Ambiance Glow */}
           <div className="absolute top-1/3 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[350px] sm:w-[550px] h-[250px] sm:h-[350px] bg-purple-950/20 blur-[130px] pointer-events-none rounded-full" />
 
           {/* Clean, Human & Professional Header */}
           <div className="w-full max-w-4xl text-center flex flex-col items-center pt-2 md:pt-4 z-10">
-            <h2 className="text-3xl sm:text-5xl md:text-6xl font-bold tracking-tight text-white mb-3">
+            <h2 className="text-3xl sm:text-5xl md:text-6xl font-bold tracking-tight text-white mb-2 sm:mb-3">
               Get In Touch
             </h2>
             <p className="text-zinc-400 max-w-md text-xs sm:text-sm md:text-base leading-relaxed px-2 font-normal">
@@ -116,7 +133,7 @@ export default function Footer() {
           </div>
 
           {/* Main Content: Actions on Left, Pixel Workstation GIF on Right */}
-          <div className="w-full max-w-4xl my-auto py-4 sm:py-6 z-10">
+          <div className="w-full max-w-4xl my-6 md:my-auto py-2 sm:py-6 z-10">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 sm:gap-8 md:gap-12 items-center justify-items-center">
 
               {/* Left Column: Glass Card with Actions, Socials & One-Click Copy */}
@@ -240,7 +257,7 @@ export default function Footer() {
           </div>
 
           {/* Bottom Copyright Notice */}
-          <div className="w-full pt-3 sm:pt-4 border-t border-white/[0.06] text-center z-10 flex items-center justify-center max-w-4xl text-zinc-500 text-[11px] sm:text-xs">
+          <div className="w-full pt-4 border-t border-white/[0.06] text-center z-10 flex items-center justify-center max-w-4xl text-zinc-500 text-[11px] sm:text-xs mt-2 md:mt-0">
             <p>
               &copy; {currentYear} Priyanshu Prajapati. All rights reserved.
             </p>
@@ -249,7 +266,7 @@ export default function Footer() {
       </div>
 
       {/* Anchor for Navbar Contact Link */}
-      <div id="contact" className="absolute bottom-0 w-full h-4 pointer-events-none" />
+      <div id="contact" className="absolute top-0 md:bottom-0 w-full h-4 pointer-events-none scroll-mt-24" />
     </section>
   );
 }

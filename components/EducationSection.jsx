@@ -51,7 +51,7 @@ export default function EducationSection() {
   return (
     <section
       id="education"
-      className="relative w-full min-h-[60vh] py-12 sm:py-16 md:py-20 px-4 sm:px-6 md:px-12 flex flex-col items-center justify-center bg-transparent overflow-hidden"
+      className="relative w-full min-h-0 md:min-h-[50vh] py-8 sm:py-16 md:py-20 px-4 sm:px-6 md:px-12 flex flex-col items-center justify-center bg-transparent overflow-hidden"
     >
       {/* Section Container */}
       <div className="relative z-10 w-full max-w-4xl mx-auto flex flex-col gap-6 sm:gap-8">
