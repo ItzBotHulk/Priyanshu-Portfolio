@@ -37,15 +37,27 @@ function useOrbitTextures() {
         canvas.height = 128;
         const ctx = canvas.getContext("2d");
 
-        if (item.isDjango) {
-          ctx.filter = "invert(0.85) sepia(1) hue-rotate(290deg) brightness(1.6)";
-        } else if (item.invert) {
-          ctx.filter = "invert(1) brightness(2)";
-        } else {
-          ctx.filter = "none";
-        }
+        // Soft, borderless atmospheric radial aura behind the icon
+        const radGrad = ctx.createRadialGradient(64, 64, 8, 64, 64, 56);
+        radGrad.addColorStop(0, "rgba(147, 51, 234, 0.28)");
+        radGrad.addColorStop(0.55, "rgba(113, 39, 186, 0.10)");
+        radGrad.addColorStop(1, "rgba(0, 0, 0, 0)");
+        ctx.fillStyle = radGrad;
+        ctx.beginPath();
+        ctx.arc(64, 64, 56, 0, Math.PI * 2);
+        ctx.fill();
 
-        ctx.drawImage(img, 12, 12, 104, 104);
+        // Atmospheric Depth-of-Field Blur on the icon (borderless, dreamy bokeh)
+        let filterStr = "blur(2.6px)";
+        if (item.isDjango) {
+          filterStr = "invert(0.85) sepia(1) hue-rotate(290deg) brightness(1.6) blur(2.6px)";
+        } else if (item.invert) {
+          filterStr = "invert(1) brightness(1.9) blur(2.6px)";
+        }
+        ctx.filter = filterStr;
+
+        // Draw icon centered with soft blur
+        ctx.drawImage(img, 20, 20, 88, 88);
 
         const tex = new THREE.CanvasTexture(canvas);
         tex.colorSpace = THREE.SRGBColorSpace;
@@ -189,34 +201,14 @@ function OrbitingTechIcons({ iconsRotationProgress, projectsSlideProgress, skill
             scale={[0, 0, 0]}
           >
             <Billboard>
-              {/* Clean, simple circular glass badge */}
-              <mesh position={[0, 0, -0.008]}>
-                <circleGeometry args={[0.13, 32]} />
-                <meshBasicMaterial
-                  color="#120626"
-                  transparent
-                  opacity={0.88}
-                  depthWrite={false}
-                />
-              </mesh>
-              {/* Subtle glowing purple ring */}
-              <mesh position={[0, 0, -0.004]}>
-                <ringGeometry args={[0.12, 0.132, 32]} />
-                <meshBasicMaterial
-                  color="#a855f7"
-                  transparent
-                  opacity={0.85}
-                  depthWrite={false}
-                />
-              </mesh>
-              {/* Tech Icon Sprite */}
+              {/* Borderless, dreamy blurred floating tech icon */}
               {tex && (
                 <mesh position={[0, 0, 0]}>
-                  <planeGeometry args={[0.175, 0.175]} />
+                  <planeGeometry args={[0.26, 0.26]} />
                   <meshBasicMaterial
                     map={tex}
                     transparent
-                    opacity={0.98}
+                    opacity={0.86}
                     depthWrite={false}
                   />
                 </mesh>
