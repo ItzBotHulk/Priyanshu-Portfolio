@@ -14,27 +14,27 @@ export default function Home() {
       <Navbar />
 
       {/* 3D Canvas across the entire page (Hero -> Experience -> Projects) */}
-      <div className="fixed inset-0 w-full h-full pointer-events-none z-10">
+      <div className="fixed inset-0 w-full h-full pointer-events-none z-0">
         <CanvasScene />
       </div>
 
       {/* Interactive 3D Scroll Journey: 380vh track choreographing Hero -> Experience */}
-      <div className="relative w-full h-[380vh] z-20">
+      <div className="relative w-full h-[380vh]">
         <div className="sticky top-0 h-screen w-full flex items-center justify-center overflow-hidden">
 
           {/* Foreground Grid Container */}
-          <div className="relative z-10 w-full max-w-7xl 2xl:max-w-[1520px] 3xl:max-w-[1800px] h-full mx-auto px-4 sm:px-6 md:px-14 2xl:px-16 flex items-center justify-center pointer-events-none pt-14 sm:pt-16">
+          <div className="relative z-10 w-full max-w-7xl h-full mx-auto px-4 sm:px-6 md:px-14 flex items-center justify-center pointer-events-none pt-14 sm:pt-16">
 
             {/* Experience Layer: Occupies Left Half (Model docks on Right on Desktop) */}
-            <div className="absolute inset-0 w-full max-w-7xl 2xl:max-w-[1520px] 3xl:max-w-[1800px] mx-auto px-4 sm:px-6 md:px-14 2xl:px-16 flex items-center justify-start pointer-events-none pt-14 sm:pt-16">
+            <div className="absolute inset-0 w-full max-w-7xl mx-auto px-4 sm:px-6 md:px-14 flex items-center justify-start pointer-events-none pt-14 sm:pt-16">
               <div className="w-full md:w-1/2 flex items-center justify-start">
                 <ExperienceSection />
               </div>
             </div>
 
             {/* Hero Intro Layer: Occupies Right Half (Model docks on Left on Desktop) */}
-            <div className="absolute inset-0 w-full max-w-7xl 2xl:max-w-[1520px] 3xl:max-w-[1800px] mx-auto px-4 sm:px-6 md:px-14 2xl:px-16 flex items-center justify-end pointer-events-none pt-14 sm:pt-16">
-              <div className="w-full md:w-1/2 flex items-center justify-center md:justify-start 2xl:pl-6">
+            <div className="absolute inset-0 w-full max-w-7xl mx-auto px-4 sm:px-6 md:px-14 flex items-center justify-end pointer-events-none pt-14 sm:pt-16">
+              <div className="w-full md:w-1/2 flex items-center justify-center md:justify-start">
                 <HeroIntro />
               </div>
             </div>
@@ -44,8 +44,8 @@ export default function Home() {
         </div>
       </div>
 
-      {/* Full-width Moving Tech Icons Divider Banner - passes behind the 3D model */}
-      <div className="w-full relative z-0">
+      {/* Full-width Moving Tech Icons Divider Banner */}
+      <div className="w-full relative z-20">
         <MovingTechIcons scrollDriven={false} />
       </div>
 

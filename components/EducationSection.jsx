@@ -54,20 +54,20 @@ export default function EducationSection() {
       className="relative w-full min-h-[60vh] py-12 sm:py-16 md:py-20 px-4 sm:px-6 md:px-12 flex flex-col items-center justify-center bg-transparent overflow-hidden"
     >
       {/* Section Container */}
-      <div className="relative z-10 w-full max-w-4xl 2xl:max-w-6xl 3xl:max-w-7xl mx-auto flex flex-col gap-6 sm:gap-8">
+      <div className="relative z-10 w-full max-w-4xl mx-auto flex flex-col gap-6 sm:gap-8">
         {/* Editorial Section Heading */}
         <div className="flex flex-col gap-1.5 text-left">
-          <div className="inline-flex items-center gap-1.5 text-[10px] sm:text-[11px] 2xl:text-xs font-mono uppercase tracking-widest text-purple-400 mb-1">
+          <div className="inline-flex items-center gap-1.5 text-[10px] sm:text-[11px] font-mono uppercase tracking-widest text-purple-400 mb-1">
             <span className="w-1.5 h-1.5 rounded-full bg-purple-500 animate-pulse" />
             <span>Academic Background</span>
           </div>
-          <h2 className="text-2xl sm:text-3xl md:text-4xl 2xl:text-5xl font-bold text-white tracking-tight">
+          <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold text-white tracking-tight">
             Education &amp; <span className="text-zinc-400 font-normal">Qualifications</span>
           </h2>
         </div>
 
-        {/* Education Cards Stack: 1 column on mobile/laptop, 2 columns on 2xl/3xl displays */}
-        <div className="grid grid-cols-1 2xl:grid-cols-2 gap-3.5 sm:gap-4.5 2xl:gap-6 w-full">
+        {/* Education Cards Stack */}
+        <div className="flex flex-col gap-3.5 sm:gap-4.5 w-full">
           {educationData.map((item) => (
             <div
               key={item.institution}

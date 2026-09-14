@@ -33,15 +33,12 @@ export default function HeroIntro() {
       if (!containerRef.current) return;
       const scrollY = window.scrollY || 0;
 
-      const vh = window.innerHeight || 850;
-      const vhRatio = Math.min(Math.max(vh / 1000, 0.72), 1.35);
+      // Phase 1: Welcome Page (0px -> 140px): HeroIntro is hidden, allowing Welcome page full focus
+      // Phase 2: Transition to Name Page (140px -> 460px): Smoothly fades in and slides into place
+      const enterProgress = Math.min(Math.max((scrollY - 140) / 320, 0), 1);
 
-      // Phase 1: Welcome Page: HeroIntro is hidden, allowing Welcome page full focus
-      // Phase 2: Transition to Name Page: Smoothly fades in and slides into place
-      const enterProgress = Math.min(Math.max((scrollY - 140 * vhRatio) / (320 * vhRatio), 0), 1);
-
-      // Phase 3: Transition to Experience Section: Smoothly fades out
-      const exitProgress = Math.min(Math.max((scrollY - 850 * vhRatio) / (500 * vhRatio), 0), 1);
+      // Phase 3: Transition to Experience Section (850px -> 1350px): Smoothly fades out
+      const exitProgress = Math.min(Math.max((scrollY - 850) / 500, 0), 1);
 
       const opacity = (enterProgress * (1 - exitProgress)).toFixed(3);
       const translateX = ((1 - enterProgress) * 35).toFixed(2);
@@ -69,7 +66,7 @@ export default function HeroIntro() {
       }}
     >
       {/* Title & Name */}
-      <h1 className="text-4xl sm:text-5xl lg:text-6xl 2xl:text-7xl font-extrabold text-white tracking-tight leading-[1.15] mb-2 text-center md:text-left">
+      <h1 className="text-4xl sm:text-5xl lg:text-6xl font-extrabold text-white tracking-tight leading-[1.15] mb-2 text-center md:text-left">
         Hello I am, <br />
         <span className="bg-gradient-to-r from-purple-400 via-violet-300 to-indigo-300 bg-clip-text text-transparent">
           Priyanshu!
@@ -77,12 +74,12 @@ export default function HeroIntro() {
       </h1>
 
       {/* Subtitle */}
-      <h2 className="text-xl sm:text-3xl lg:text-4xl 2xl:text-5xl font-bold text-zinc-100 tracking-tight mt-1 mb-2 text-center md:text-left">
+      <h2 className="text-xl sm:text-3xl lg:text-4xl font-bold text-zinc-100 tracking-tight mt-1 mb-2 text-center md:text-left">
         A Full Stack Developer.
       </h2>
 
       {/* Description */}
-      <p className="text-xs sm:text-sm md:text-base 2xl:text-lg text-zinc-400 max-w-xs sm:max-w-md 2xl:max-w-xl mb-5 leading-relaxed text-center md:text-left">
+      <p className="text-xs sm:text-sm md:text-base text-zinc-400 max-w-xs sm:max-w-md mb-5 leading-relaxed text-center md:text-left">
         Currently open to new opportunities in modern web development &amp; actively exploring CRM tech (Salesforce).
       </p>
 
@@ -104,9 +101,8 @@ export default function HeroIntro() {
                 alt={tech.name}
                 width={42}
                 height={42}
-                className={`w-9 h-9 sm:w-10 sm:h-10 object-contain transition-transform drop-shadow-md ${
-                  tech.invert ? "brightness-0 invert" : ""
-                }`}
+                className={`w-9 h-9 sm:w-10 sm:h-10 object-contain transition-transform drop-shadow-md ${tech.invert ? "brightness-0 invert" : ""
+                  }`}
               />
             </Link>
           ))}
@@ -128,9 +124,8 @@ export default function HeroIntro() {
                 alt={tech.name}
                 width={42}
                 height={42}
-                className={`w-9 h-9 sm:w-10 sm:h-10 object-contain transition-transform drop-shadow-md ${
-                  tech.invert ? "brightness-0 invert" : ""
-                }`}
+                className={`w-9 h-9 sm:w-10 sm:h-10 object-contain transition-transform drop-shadow-md ${tech.invert ? "brightness-0 invert" : ""
+                  }`}
               />
             </Link>
           ))}

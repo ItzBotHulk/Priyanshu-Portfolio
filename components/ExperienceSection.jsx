@@ -84,13 +84,10 @@ export default function ExperienceSection() {
 
     const getTargetProgress = () => {
       const scrollY = window.scrollY || 0;
-      const vh = window.innerHeight || 850;
-      const vhRatio = Math.min(Math.max(vh / 1000, 0.72), 1.35);
-
-      // Phase 3: Enters between 850px*vhRatio and 1400px*vhRatio
-      const enter = Math.min(Math.max((scrollY - 850 * vhRatio) / (550 * vhRatio), 0), 1);
-      // Fades out when leaving experience track (~2100px*vhRatio -> 2500px*vhRatio)
-      const exit = Math.min(Math.max((scrollY - 2100 * vhRatio) / (400 * vhRatio), 0), 1);
+      // Phase 3: Enters between 850px and 1400px
+      const enter = Math.min(Math.max((scrollY - 850) / 550, 0), 1);
+      // Fades out when leaving experience track (~2550px -> 2850px)
+      const exit = Math.min(Math.max((scrollY - 2550) / 300, 0), 1);
       return { enter, exit };
     };
 
@@ -132,7 +129,7 @@ export default function ExperienceSection() {
     <div
       ref={containerRef}
       id="experience"
-      className="w-full max-w-2xl 2xl:max-w-3xl flex flex-col justify-center will-change-transform py-1 sm:py-2 px-1 sm:px-3 md:px-0"
+      className="w-full max-w-2xl flex flex-col justify-center will-change-transform py-1 sm:py-2 px-1 sm:px-3 md:px-0"
       style={{
         transform: "translateX(-25px)",
         opacity: 0,
@@ -141,11 +138,11 @@ export default function ExperienceSection() {
     >
       {/* Editorial Section Header */}
       <div className="mb-2.5 sm:mb-3 text-left">
-        <div className="inline-flex items-center gap-1.5 text-[10px] sm:text-[11px] 2xl:text-xs font-mono uppercase tracking-widest text-purple-400 mb-1">
+        <div className="inline-flex items-center gap-1.5 text-[10px] sm:text-[11px] font-mono uppercase tracking-widest text-purple-400 mb-1">
           <span className="w-1.5 h-1.5 rounded-full bg-purple-500 animate-pulse" />
           <span>Career Journey</span>
         </div>
-        <h2 className="text-xl sm:text-2xl 2xl:text-3xl font-bold text-white tracking-tight">
+        <h2 className="text-xl sm:text-2xl font-bold text-white tracking-tight">
           Work <span className="text-zinc-400 font-normal">Experience</span>
         </h2>
       </div>

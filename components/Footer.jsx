@@ -106,21 +106,21 @@ export default function Footer() {
           <div className="absolute top-1/3 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[350px] sm:w-[550px] h-[250px] sm:h-[350px] bg-purple-950/20 blur-[130px] pointer-events-none rounded-full" />
 
           {/* Clean, Human & Professional Header */}
-          <div className="w-full max-w-4xl 2xl:max-w-6xl text-center flex flex-col items-center pt-2 md:pt-4 z-10">
-            <h2 className="text-3xl sm:text-5xl md:text-6xl 2xl:text-7xl font-bold tracking-tight text-white mb-3">
+          <div className="w-full max-w-4xl text-center flex flex-col items-center pt-2 md:pt-4 z-10">
+            <h2 className="text-3xl sm:text-5xl md:text-6xl font-bold tracking-tight text-white mb-3">
               Get In Touch
             </h2>
-            <p className="text-zinc-400 max-w-md 2xl:max-w-lg text-xs sm:text-sm md:text-base 2xl:text-lg leading-relaxed px-2 font-normal">
+            <p className="text-zinc-400 max-w-md text-xs sm:text-sm md:text-base leading-relaxed px-2 font-normal">
               Whether you have an opportunity, a project to build, or just want to say hi — feel free to drop a line.
             </p>
           </div>
 
           {/* Main Content: Actions on Left, Pixel Workstation GIF on Right */}
-          <div className="w-full max-w-4xl 2xl:max-w-5xl 3xl:max-w-6xl my-auto py-4 sm:py-6 z-10">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 sm:gap-8 md:gap-12 2xl:gap-16 items-center justify-items-center">
+          <div className="w-full max-w-4xl my-auto py-4 sm:py-6 z-10">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 sm:gap-8 md:gap-12 items-center justify-items-center">
 
               {/* Left Column: Glass Card with Actions, Socials & One-Click Copy */}
-              <div className="w-full max-w-sm sm:max-w-md 2xl:max-w-lg p-6 sm:p-8 2xl:p-10 rounded-2xl bg-zinc-900/60 backdrop-blur-xl border border-white/[0.08] shadow-[0_8px_32px_rgba(0,0,0,0.6)] flex flex-col items-center justify-center gap-5 sm:gap-6 2xl:gap-8 text-center hover:border-purple-500/30 transition-all duration-300">
+              <div className="w-full max-w-sm sm:max-w-md p-6 sm:p-8 rounded-2xl bg-zinc-900/60 backdrop-blur-xl border border-white/[0.08] shadow-[0_8px_32px_rgba(0,0,0,0.6)] flex flex-col items-center justify-center gap-5 sm:gap-6 text-center hover:border-purple-500/30 transition-all duration-300">
                 <span className="text-[11px] sm:text-xs uppercase tracking-wider text-zinc-400 font-medium">
                   Direct Inquiries
                 </span>

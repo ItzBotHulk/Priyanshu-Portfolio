@@ -12,6 +12,13 @@ const poppins = Poppins({
 export const metadata = {
   title: "Portfolio - Priyanshu Prajapati",
   description: "Its a portfolio of Priyanshu, A full stack dev.",
+  icons: {
+    icon: [
+      { url: '/icon.svg', type: 'image/svg+xml' },
+    ],
+    shortcut: '/icon.svg',
+    apple: '/icon.svg',
+  },
 };
 
 export default function RootLayout({ children }) {

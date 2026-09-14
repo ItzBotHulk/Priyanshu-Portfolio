@@ -462,17 +462,14 @@ outgoingLight = mix( outgoingLight, matcapOverlay, uMatcapStrength );
       const pCenter = centerProgress ? THREE.MathUtils.smoothstep(centerProgress.current, 0, 1) : 0;
       const pSlide = projectsSlideProgress ? THREE.MathUtils.smoothstep(projectsSlideProgress.current, 0, 1) : 0;
 
-      // Dynamic responsive container width in Three.js world coordinates
-      const containerPx = screenW >= 2560 ? 1800 : (screenW >= 1536 ? 1520 : (screenW >= 1280 ? 1240 : screenW * 0.92));
-      const containerRatio = Math.min(containerPx / screenW, 0.92);
-      const containerHalfW = (vpW * containerRatio) / 2;
-
-      // Hero: Model docks comfortably in the left half, looking right at the intro text
-      const heroTargetX = !isMobile ? (isTablet ? -0.80 : -containerHalfW * 0.52) : 0;
-      // Experience: Model docks comfortably in the right half, looking left at the work experience cards
-      const expTargetX = !isMobile ? (isTablet ? 0.85 : containerHalfW * 0.52) : 0;
-      // Skills: Model docks in the right column stage area
-      const skillsTargetX = !isMobile ? (isTablet ? 0.90 : containerHalfW * 0.50) : 0;
+      // Responsive X offsets:
+      // Monitor (>=1440): full wide offset (-1.65 / +1.85)
+      // Laptop (1024-1439): balanced offset (-1.35 / +1.45)
+      // Tablet (768-1023): compact safe offset (-0.80 / +0.85)
+      // Mobile (<768): centered (0)
+      const heroTargetX = isMonitor ? -1.65 : (isLaptop ? -1.35 : (isTablet ? -0.80 : 0));
+      const expTargetX = isMonitor ? 1.85 : (isLaptop ? 1.45 : (isTablet ? 0.85 : 0));
+      const projScaleFactor = isMonitor ? 1.0 : (isLaptop ? 0.80 : (isTablet ? 0.40 : 0));
 
       // Hero stance: smoothly shift from center (0) to left (heroTargetX) as user scrolls
       const heroShift = shiftProgress ? THREE.MathUtils.smoothstep(shiftProgress.current, 0, 1) : 1;
@@ -483,24 +480,11 @@ outgoingLight = mix( outgoingLight, matcapOverlay, uMatcapStrength );
       // Come smoothly from right to center (0) at sliding icons banner
       const centeredX = THREE.MathUtils.lerp(expX, 0, pCenter);
 
-      // Projects & Beyond: dynamic left and right sliding at each project card
-      const rawProjTarget = projectTargetX ? projectTargetX.current : 0;
-      let dynamicProjX = 0;
-      if (!isMobile) {
-        if (Math.abs(rawProjTarget - 1.38) < 0.05) {
-          dynamicProjX = skillsTargetX;
-        } else if (rawProjTarget < -0.5) {
-          dynamicProjX = -Math.min(containerHalfW * 0.72, vpW * 0.35);
-        } else if (rawProjTarget > 0.5) {
-          dynamicProjX = Math.min(containerHalfW * 0.72, vpW * 0.35);
-        } else {
-          dynamicProjX = 0;
-        }
-      }
-
+      // Projects: dynamic left and right sliding at each project card
+      const dynamicProjX = (projectTargetX ? projectTargetX.current : -2.40) * projScaleFactor;
       const rawTargetX = THREE.MathUtils.lerp(centeredX, dynamicProjX, pSlide);
       // Ensure targetX never leaves visible screen bounds
-      const maxSafeX = Math.max(vpW * 0.44, 0.4);
+      const maxSafeX = Math.max(vpW * 0.38, 0.4);
       const targetX = THREE.MathUtils.clamp(rawTargetX, -maxSafeX, maxSafeX);
 
       const pSkills = skillsProgress ? THREE.MathUtils.smoothstep(skillsProgress.current, 0, 1) : 0;
@@ -523,30 +507,26 @@ outgoingLight = mix( outgoingLight, matcapOverlay, uMatcapStrength );
           : Math.sin(expProgress * Math.PI) * -0.08 * (1 - pCenter)
         : 0;
 
-      // Viewport-height scaling factor: preserves vertical framing on short/ultrawide screens (e.g. 1880x850, 1440x900)
-      const screenH = state.size.height;
-      const heightFactor = Math.min(Math.max(screenH / 1020, 0.65), 1.15);
-
-      // Responsive model scale tiers with graceful scaling for 2K/4K/Ultrawide displays
-      let baseScale = (screenW >= 2560 ? 1.25 : (screenW >= 1536 ? 1.10 : 1.02)) * heightFactor;
-      let skillsScale = (screenW >= 2560 ? 1.62 : (screenW >= 1536 ? 1.45 : 1.38)) * heightFactor;
-      let portraitScale = (screenW >= 2560 ? 3.3 : (screenW >= 1536 ? 3.1 : 2.9)) * heightFactor;
+      // Responsive model scale tiers
+      let baseScale = 1.05;
+      let skillsScale = 1.42;
+      let portraitScale = 3.0;
 
       if (isMobile) {
         baseScale = 0.72;
         skillsScale = 0.95;
         portraitScale = 2.0;
       } else if (isTablet) {
-        baseScale = 0.86 * heightFactor;
-        skillsScale = 1.12 * heightFactor;
-        portraitScale = 2.4 * heightFactor;
+        baseScale = 0.88;
+        skillsScale = 1.15;
+        portraitScale = 2.4;
       } else if (isLaptop) {
-        baseScale = 0.96 * heightFactor;
-        skillsScale = 1.26 * heightFactor;
-        portraitScale = 2.7 * heightFactor;
+        baseScale = 0.98;
+        skillsScale = 1.30;
+        portraitScale = 2.7;
       }
 
-      const targetSkillsY = isMobile ? -1.50 : (isTablet ? -1.45 : (screenH <= 900 ? -1.25 : -1.42));
+      const targetSkillsY = isMobile ? -1.50 : (isTablet ? -1.45 : -1.42);
 
       const pHead = headZoomProgress ? THREE.MathUtils.smoothstep(headZoomProgress.current, 0, 1) : 0;
 
@@ -582,12 +562,10 @@ outgoingLight = mix( outgoingLight, matcapOverlay, uMatcapStrength );
       const targetScale = pHead > 0 ? headScale : normalScale;
 
       // Vertical Y positioning:
-      // In Hero and Experience: Y ≈ -0.85
-      // Approaching and at the banner showcase (pCenter > 0): lift model up so he hovers gracefully above the banner!
-      const heroExpY = isMobile ? -1.18 : (isTablet ? -1.06 : (screenH <= 900 ? -0.82 : -0.92));
-      const showcaseCenterY = isMobile ? -0.92 : (screenH <= 900 ? -0.42 : -0.58);
-      const bannerShiftY = THREE.MathUtils.lerp(heroExpY, showcaseCenterY, pCenter);
-      const targetProjectY = isMobile ? -1.58 : (isTablet ? -1.46 : (screenH <= 900 ? -1.25 : -1.38));
+      const bannerShiftY = isMobile
+        ? -1.18
+        : (isTablet ? -1.06 : THREE.MathUtils.lerp(-0.90, -1.02, pCenter));
+      const targetProjectY = isMobile ? -1.58 : (isTablet ? -1.46 : -1.38);
       const skillsBaseY = THREE.MathUtils.lerp(
         THREE.MathUtils.lerp(bannerShiftY, targetProjectY, pSlide),
         targetSkillsY,
@@ -723,7 +701,7 @@ function ScrollCameraController({ tiltProgress, experienceProgress, projectsProg
   const currentTarget = useRef(new THREE.Vector3(0, 3.8, 0.3));
 
   useFrame((state, delta) => {
-    const currentFrontZ = size.width < 768 ? 4.1 : (size.width < 1024 ? 3.85 : (size.height <= 900 ? 3.82 : 3.6));
+    const currentFrontZ = size.width < 768 ? 4.1 : (size.width < 1024 ? 3.85 : 3.6);
     frontPos.current.z = currentFrontZ;
     expPos.current.z = currentFrontZ + 0.15;
     expPos.current.x = size.width < 768 ? 0 : (size.width < 1024 ? 0.15 : 0.25);
@@ -750,30 +728,29 @@ const PROJ_LEFT_X = -2.40;
 const PROJ_RIGHT_X = 2.05;
 const SKILLS_MODEL_X = 1.38;
 
-function getProjectState(scrollY, vhRatio = 1) {
-  const r = vhRatio;
-  // Completely centered at middle (0) during horizontal display (sliding icons banner up to 3050px * r)
-  if (scrollY < 3050 * r) {
+function getProjectState(scrollY) {
+  // Completely centered at middle (0) during horizontal display (sliding icons banner up to 3050px)
+  if (scrollY < 3050) {
     return { targetX: 0, spinY: 0, bankZ: 0 };
   }
 
-  // Transition into Vertical Display - Project 1 (iTask Manager: Left side): 3050 * r -> 3350 * r
-  if (scrollY < 3350 * r) {
-    const t = Math.min(Math.max((scrollY - 3050 * r) / (300 * r), 0), 1);
+  // Transition into Vertical Display - Project 1 (iTask Manager: Left side): 3050px -> 3350px
+  if (scrollY < 3350) {
+    const t = Math.min(Math.max((scrollY - 3050) / 300, 0), 1);
     const easeT = t * t * (3 - 2 * t);
     const x = THREE.MathUtils.lerp(0, PROJ_LEFT_X, easeT);
     const bank = Math.sin(t * Math.PI) * 0.08;
     return { targetX: x, spinY: 0, bankZ: bank };
   }
 
-  // Project 1 (iTask: Left side) hold: 3350 * r -> 3600 * r
-  if (scrollY < 3600 * r) {
+  // Project 1 (iTask: Left side) hold: 3350px -> 3600px
+  if (scrollY < 3600) {
     return { targetX: PROJ_LEFT_X, spinY: 0, bankZ: 0 };
   }
 
-  // Dynamic Slide: Project 1 (Left) -> Project 2 (Right) with full 360° spin: 3600 * r -> 3850 * r
-  if (scrollY < 3850 * r) {
-    const t = Math.min(Math.max((scrollY - 3600 * r) / (250 * r), 0), 1);
+  // Dynamic Slide: Project 1 (Left) -> Project 2 (Right) with full 360° spin: 3600px -> 3850px
+  if (scrollY < 3850) {
+    const t = Math.min(Math.max((scrollY - 3600) / 250, 0), 1);
     const easeT = t * t * (3 - 2 * t);
     const x = THREE.MathUtils.lerp(PROJ_LEFT_X, PROJ_RIGHT_X, easeT);
     // Smooth 360-degree rotation during left-to-right transit
@@ -783,14 +760,14 @@ function getProjectState(scrollY, vhRatio = 1) {
     return { targetX: x, spinY: spin, bankZ: bank };
   }
 
-  // Project 2 (Get Me a Chai: Right side) hold: 3850 * r -> 4100 * r (Centered at 3952px)
-  if (scrollY < 4100 * r) {
+  // Project 2 (Get Me a Chai: Right side) hold: 3850px -> 4100px (Centered at 3952px)
+  if (scrollY < 4100) {
     return { targetX: PROJ_RIGHT_X, spinY: -Math.PI * 2, bankZ: 0 };
   }
 
-  // Dynamic Slide: Project 2 (Right) -> Project 3 (Left) with spin: 4100 * r -> 4350 * r
-  if (scrollY < 4350 * r) {
-    const t = Math.min(Math.max((scrollY - 4100 * r) / (250 * r), 0), 1);
+  // Dynamic Slide: Project 2 (Right) -> Project 3 (Left) with spin: 4100px -> 4350px
+  if (scrollY < 4350) {
+    const t = Math.min(Math.max((scrollY - 4100) / 250, 0), 1);
     const easeT = t * t * (3 - 2 * t);
     const x = THREE.MathUtils.lerp(PROJ_RIGHT_X, PROJ_LEFT_X, easeT);
     const spin = -Math.PI * 2 + easeT * Math.PI * 2;
@@ -798,14 +775,14 @@ function getProjectState(scrollY, vhRatio = 1) {
     return { targetX: x, spinY: spin, bankZ: bank };
   }
 
-  // Project 3 (LinkTree: Left side) hold: 4350 * r -> 4600 * r (Centered at 4450px)
-  if (scrollY < 4600 * r) {
+  // Project 3 (LinkTree: Left side) hold: 4350px -> 4600px (Centered at 4450px)
+  if (scrollY < 4600) {
     return { targetX: PROJ_LEFT_X, spinY: 0, bankZ: 0 };
   }
 
-  // Dynamic Slide: Project 3 (Left) -> Project 4 (Right) with spin: 4600 * r -> 4850 * r
-  if (scrollY < 4850 * r) {
-    const t = Math.min(Math.max((scrollY - 4600 * r) / (250 * r), 0), 1);
+  // Dynamic Slide: Project 3 (Left) -> Project 4 (Right) with spin: 4600px -> 4850px
+  if (scrollY < 4850) {
+    const t = Math.min(Math.max((scrollY - 4600) / 250, 0), 1);
     const easeT = t * t * (3 - 2 * t);
     const x = THREE.MathUtils.lerp(PROJ_LEFT_X, PROJ_RIGHT_X, easeT);
     const spin = -easeT * Math.PI * 2;
@@ -813,14 +790,14 @@ function getProjectState(scrollY, vhRatio = 1) {
     return { targetX: x, spinY: spin, bankZ: bank };
   }
 
-  // Project 4 (BitLinks: Right side) hold: 4850 * r -> 5100 * r (Centered at 4950px)
-  if (scrollY < 5100 * r) {
+  // Project 4 (BitLinks: Right side) hold: 4850px -> 5100px (Centered at 4950px)
+  if (scrollY < 5100) {
     return { targetX: PROJ_RIGHT_X, spinY: -Math.PI * 2, bankZ: 0 };
   }
 
-  // Dynamic Slide: Project 4 (Right) -> Project 5 (Left) with spin: 5100 * r -> 5350 * r
-  if (scrollY < 5350 * r) {
-    const t = Math.min(Math.max((scrollY - 5100 * r) / (250 * r), 0), 1);
+  // Dynamic Slide: Project 4 (Right) -> Project 5 (Left) with spin: 5100px -> 5350px
+  if (scrollY < 5350) {
+    const t = Math.min(Math.max((scrollY - 5100) / 250, 0), 1);
     const easeT = t * t * (3 - 2 * t);
     const x = THREE.MathUtils.lerp(PROJ_RIGHT_X, PROJ_LEFT_X, easeT);
     const spin = -Math.PI * 2 + easeT * Math.PI * 2;
@@ -828,14 +805,14 @@ function getProjectState(scrollY, vhRatio = 1) {
     return { targetX: x, spinY: spin, bankZ: bank };
   }
 
-  // Project 5 (PassSecure: Left side) hold: 5350 * r -> 5600 * r (Centered at 5450px)
-  if (scrollY < 5600 * r) {
+  // Project 5 (PassSecure: Left side) hold: 5350px -> 5600px (Centered at 5450px)
+  if (scrollY < 5600) {
     return { targetX: PROJ_LEFT_X, spinY: 0, bankZ: 0 };
   }
 
-  // Dynamic Slide: Project 5 (Left) -> Skills Section (Right): 5600 * r -> 5850 * r with 360° spin
-  if (scrollY < 5850 * r) {
-    const t = Math.min(Math.max((scrollY - 5600 * r) / (250 * r), 0), 1);
+  // Dynamic Slide: Project 5 (Left) -> Skills Section (Right): 5600px -> 5850px with 360° spin
+  if (scrollY < 5850) {
+    const t = Math.min(Math.max((scrollY - 5600) / 250, 0), 1);
     const easeT = t * t * (3 - 2 * t);
     const x = THREE.MathUtils.lerp(PROJ_LEFT_X, SKILLS_MODEL_X, easeT);
     const spin = -easeT * Math.PI * 2;
@@ -843,28 +820,28 @@ function getProjectState(scrollY, vhRatio = 1) {
     return { targetX: x, spinY: spin, bankZ: bank };
   }
 
-  // Skills Section: Model docks comfortably facing left toward skills: 5850 * r -> 6450 * r
-  if (scrollY < 6450 * r) {
+  // Skills Section: Model docks comfortably facing left toward skills: 5850px -> 6450px
+  if (scrollY < 6450) {
     return { targetX: SKILLS_MODEL_X, spinY: -Math.PI * 2, bankZ: 0 };
   }
 
-  // 50% Gap & Transition into Education: Model rotates 50% (180° / half-turn) and glides into center: 6450 * r -> 7050 * r
-  if (scrollY < 7050 * r) {
-    const t = Math.min(Math.max((scrollY - 6450 * r) / (600 * r), 0), 1);
+  // 50% Gap & Transition into Education: Model rotates 50% (180° / half-turn) and glides into center: 6450px -> 7050px
+  if (scrollY < 7050) {
+    const t = Math.min(Math.max((scrollY - 6450) / 600, 0), 1);
     const easeT = t * t * (3 - 2 * t);
     const x = THREE.MathUtils.lerp(SKILLS_MODEL_X, 0, easeT);
     const spin = -Math.PI * 2 - easeT * Math.PI;
     return { targetX: x, spinY: spin, bankZ: 0 };
   }
 
-  // Education Section hold: 7050 * r -> 7350 * r (Centered at 0, 50% rotated)
-  if (scrollY < 7350 * r) {
+  // Education Section hold: 7050px -> 7350px (Centered at 0, 50% rotated)
+  if (scrollY < 7350) {
     return { targetX: 0, spinY: -Math.PI * 3, bankZ: 0 };
   }
 
   // Smoothly rotate around to face forward (-Math.PI * 4) so the FACE IS CLEARLY VISIBLE
-  if (scrollY < 7800 * r) {
-    const tRot = Math.min(Math.max((scrollY - 7350 * r) / (450 * r), 0), 1);
+  if (scrollY < 7800) {
+    const tRot = Math.min(Math.max((scrollY - 7350) / 450, 0), 1);
     const easeRot = tRot * tRot * (3 - 2 * tRot);
     const spin = -Math.PI * 3 - easeRot * Math.PI;
     return { targetX: 0, spinY: spin, bankZ: 0 };
@@ -944,8 +921,6 @@ export default function CanvasScene() {
     const handleScroll = () => {
       const scrollY = window.scrollY;
       const isMobile = window.innerWidth < 768;
-      const vh = window.innerHeight || 850;
-      const vhRatio = THREE.MathUtils.clamp(vh / 1000, 0.72, 1.35);
 
       // On mobile devices: automatically synchronize MatCap to current scroll section
       if (isMobile) {
@@ -956,31 +931,31 @@ export default function CanvasScene() {
         }
       }
 
-      // Phase 1: Swoop from Top to Front over 0px -> 320px * vhRatio
-      tiltProgress.current = Math.min(Math.max(scrollY / (320 * vhRatio), 0), 1);
-      // Phase 2: Shift from Center (Mid) to Left over 0px -> 450px * vhRatio
-      shiftProgress.current = Math.min(Math.max(scrollY / (450 * vhRatio), 0), 1);
+      // Phase 1: Swoop from Top to Front over 0px -> 320px
+      tiltProgress.current = Math.min(Math.max(scrollY / 320, 0), 1);
+      // Phase 2: Shift from Center (Mid) to Left over 0px -> 450px
+      shiftProgress.current = Math.min(Math.max(scrollY / 450, 0), 1);
       // Phase 3: Move to Right & Rotate over 850px -> 1500px (synced with experience section)
-      experienceProgress.current = Math.min(Math.max((scrollY - 850 * vhRatio) / (650 * vhRatio), 0), 1);
+      experienceProgress.current = Math.min(Math.max((scrollY - 850) / 650, 0), 1);
       // Phase 4: Dynamic rotation while in Experience section over 1500px -> 2300px
-      experienceHoldScroll.current = Math.min(Math.max((scrollY - 1500 * vhRatio) / (800 * vhRatio), 0), 1);
+      experienceHoldScroll.current = Math.min(Math.max((scrollY - 1500) / 800, 0), 1);
       // Phase 5: Move from Right to Center as user approaches the sliding icons banner (2100px -> 2550px)
-      centerProgress.current = Math.min(Math.max((scrollY - 2100 * vhRatio) / (450 * vhRatio), 0), 1);
+      centerProgress.current = Math.min(Math.max((scrollY - 2100) / 450, 0), 1);
       // Phase 6: Icon rotation at model runs at sliding icons banner (2400px -> 3000px)
-      iconsRotationProgress.current = Math.min(Math.max((scrollY - 2400 * vhRatio) / (500 * vhRatio), 0), 1);
+      iconsRotationProgress.current = Math.min(Math.max((scrollY - 2400) / 500, 0), 1);
       // Phase 7: Projects slide progress (triggers lift & left slide as leaving banner into projects over 3050px -> 3350px)
-      projectsSlideProgress.current = Math.min(Math.max((scrollY - 3050 * vhRatio) / (300 * vhRatio), 0), 1);
+      projectsSlideProgress.current = Math.min(Math.max((scrollY - 3050) / 300, 0), 1);
       // Dynamic Projects X position & rotation (slides between left and right with rotation)
-      const projState = getProjectState(scrollY, vhRatio);
+      const projState = getProjectState(scrollY);
       projectTargetX.current = projState.targetX;
       projectSpinY.current = projState.spinY;
       projectBankZ.current = projState.bankZ;
       // Phase 8: Projects section scroll-down over 3350px -> 6800px
-      projectsProgress.current = Math.min(Math.max((scrollY - 3350 * vhRatio) / (3500 * vhRatio), 0), 1);
+      projectsProgress.current = Math.min(Math.max((scrollY - 3350) / 3500, 0), 1);
       // Phase 9: Skills section transition: 5550px -> 5850px (orbiting icons fly to real skill badges and hide)
-      skillsProgress.current = Math.min(Math.max((scrollY - 5550 * vhRatio) / (300 * vhRatio), 0), 1);
+      skillsProgress.current = Math.min(Math.max((scrollY - 5550) / 300, 0), 1);
       // Phase 10: Face zoom and footer emergence over 7350px -> 8400px
-      headZoomProgress.current = Math.min(Math.max((scrollY - 7350 * vhRatio) / (950 * vhRatio), 0), 1);
+      headZoomProgress.current = Math.min(Math.max((scrollY - 7350) / 950, 0), 1);
     };
 
     const handleMatcapHover = (e) => {

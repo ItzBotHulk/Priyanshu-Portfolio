@@ -118,14 +118,14 @@ function ProjectItem({ project, idx }) {
     <div
       className={`relative flex flex-col items-center justify-center ${
         isEven ? "lg:flex-row-reverse" : "lg:flex-row"
-      } w-full max-w-5xl 2xl:max-w-6xl 3xl:max-w-7xl mx-auto gap-0`}
+      } w-full max-w-5xl mx-auto gap-0`}
     >
       {/* Frosted Glass Description Card (Overlapping with Depth Effect, Overlapping Bottom on Phone) */}
       <div
         onMouseEnter={handleTextHoverEnter}
         onMouseLeave={handleTextHoverLeave}
-        className={`w-[93%] sm:w-[95%] lg:w-[460px] xl:w-[495px] 2xl:w-[560px] 3xl:w-[620px] max-w-md sm:max-w-lg lg:max-w-none order-2 lg:order-none -mt-8 sm:-mt-11 lg:mt-0 transition-all duration-400 ease-out cursor-pointer ${
-          isEven ? "lg:-ml-10 xl:-ml-16 2xl:-ml-20" : "lg:-mr-10 xl:-mr-16 2xl:-mr-20"
+        className={`w-[93%] sm:w-[95%] lg:w-[460px] xl:w-[495px] max-w-md sm:max-w-lg lg:max-w-none order-2 lg:order-none -mt-8 sm:-mt-11 lg:mt-0 transition-all duration-400 ease-out cursor-pointer ${
+          isEven ? "lg:-ml-10 xl:-ml-16" : "lg:-mr-10 xl:-mr-16"
         } ${
           hovered === "text"
             ? `z-30 scale-[1.02] shadow-[0_20px_50px_rgba(0,0,0,0.85)]`
@@ -242,7 +242,7 @@ function ProjectItem({ project, idx }) {
       <div
         onMouseEnter={() => setHovered("image")}
         onMouseLeave={() => setHovered(null)}
-        className={`w-full max-w-md sm:max-w-lg lg:max-w-none lg:w-[540px] xl:w-[600px] 2xl:w-[680px] 3xl:w-[760px] order-1 lg:order-none transition-all duration-400 ease-out cursor-pointer ${
+        className={`w-full max-w-md sm:max-w-lg lg:max-w-none lg:w-[540px] xl:w-[600px] order-1 lg:order-none transition-all duration-400 ease-out cursor-pointer ${
           hovered === "image"
             ? "z-30 scale-[1.03] shadow-[0_0_55px_rgba(168,85,247,0.55)]"
             : hovered === "text"

@@ -60,15 +60,15 @@ export default function SkillsSection() {
       {/* Subtle atmospheric ambient glow */}
       <div className="absolute top-1/3 left-1/3 w-[500px] h-[500px] bg-purple-900/10 rounded-full blur-[130px] pointer-events-none" />
 
-      <div className="relative z-10 w-full max-w-7xl 2xl:max-w-[1520px] 3xl:max-w-[1800px] mx-auto flex flex-col lg:flex-row items-start justify-between gap-8 lg:gap-10 2xl:gap-14">
+      <div className="relative z-10 w-full max-w-7xl mx-auto flex flex-col lg:flex-row items-start justify-between gap-8 lg:gap-10">
         {/* Left Column: Skills Content matching user's design */}
-        <div className="w-full lg:w-[56%] 2xl:w-[54%] flex flex-col">
+        <div className="w-full lg:w-[56%] flex flex-col">
           {/* Section Header */}
           <div className="mb-5 flex flex-col gap-1.5">
-            <h2 className="text-3xl sm:text-4xl 2xl:text-5xl font-serif font-normal text-white tracking-tight">
+            <h2 className="text-3xl sm:text-4xl font-serif font-normal text-white tracking-tight">
               My Skills
             </h2>
-            <p className="text-zinc-400 text-xs sm:text-sm 2xl:text-base max-w-lg 2xl:max-w-xl leading-relaxed">
+            <p className="text-zinc-400 text-xs sm:text-sm max-w-lg leading-relaxed">
               Technologies and tools I&apos;ve worked with throughout my projects
               and experience
             </p>
@@ -95,13 +95,11 @@ export default function SkillsSection() {
                           alt={skill.name}
                           width={30}
                           height={30}
-                          className={`w-6 h-6 sm:w-7 sm:h-7 object-contain group-hover:scale-110 transition-transform duration-300 ${
-                            skill.invert ? "invert brightness-200" : ""
-                          } ${
-                            skill.isDjango
+                          className={`w-6 h-6 sm:w-7 sm:h-7 object-contain group-hover:scale-110 transition-transform duration-300 ${skill.invert ? "invert brightness-200" : ""
+                            } ${skill.isDjango
                               ? "brightness-150 contrast-125 sepia hue-rotate-[290deg]"
                               : ""
-                          }`}
+                            }`}
                         />
                       </div>
                       {/* Skill Name */}
