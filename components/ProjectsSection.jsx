@@ -135,7 +135,7 @@ function ProjectItem({ project, idx }) {
         }`}
       >
         <div
-          className={`relative p-5 sm:p-7 md:p-8 rounded-2xl bg-zinc-900/80 backdrop-blur-2xl border transition-all duration-300 shadow-[0_12px_36px_rgba(0,0,0,0.55)] overflow-hidden ${
+          className={`relative p-5 sm:p-7 md:p-8 rounded-3xl bg-zinc-900/80 backdrop-blur-2xl border transition-all duration-300 shadow-[0_12px_36px_rgba(0,0,0,0.55)] overflow-hidden ${
             hovered === "text"
               ? `${project.hoverBorder} bg-zinc-900/90 ${project.hoverGlow}`
               : "border-white/[0.12]"
@@ -143,7 +143,7 @@ function ProjectItem({ project, idx }) {
         >
           {/* MatCap Ambient Glow & Texture Sheen Overlay on Card Hover */}
           <div
-            className={`absolute inset-0 rounded-2xl overflow-hidden pointer-events-none transition-opacity duration-500 z-0 ${
+            className={`absolute inset-0 rounded-3xl overflow-hidden pointer-events-none transition-opacity duration-500 z-0 ${
               hovered === "text" ? "opacity-100" : "opacity-0"
             }`}
           >
@@ -251,22 +251,22 @@ function ProjectItem({ project, idx }) {
         }`}
       >
         <div
-          className={`relative rounded-2xl overflow-hidden border transition-all duration-300 shadow-[0_0_45px_rgba(147,51,234,0.35)] ${
+          className={`relative rounded-3xl overflow-hidden border transition-all duration-300 shadow-[0_0_45px_rgba(147,51,234,0.35)] ${
             hovered === "image"
               ? "border-purple-400/80 shadow-[0_0_55px_rgba(168,85,247,0.55)]"
               : "border-purple-500/35"
           }`}
         >
           {/* Edge-to-edge Project Screenshot with subtle gloss overlay */}
-          <div className="relative aspect-[16/10] w-full overflow-hidden bg-zinc-950">
+          <div className="relative aspect-[16/10] w-full overflow-hidden bg-zinc-950 rounded-3xl">
             <Image
               src={project.image}
               alt={project.title}
               fill
-              className="object-cover object-top hover:scale-[1.02] transition-transform duration-500 ease-out"
+              className="object-cover object-top hover:scale-[1.02] transition-transform duration-500 ease-out rounded-3xl"
               sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 600px"
             />
-            <div className="absolute inset-0 bg-gradient-to-t from-zinc-950/40 via-transparent to-white/[0.04] pointer-events-none" />
+            <div className="absolute inset-0 bg-gradient-to-t from-zinc-950/40 via-transparent to-white/[0.04] pointer-events-none rounded-3xl" />
           </div>
         </div>
       </div>
