@@ -66,7 +66,7 @@ export default function HeroIntro() {
       }}
     >
       {/* Title & Name */}
-      <h1 className="text-4xl sm:text-5xl lg:text-6xl font-extrabold text-white tracking-tight leading-[1.15] mb-2 text-center md:text-left">
+      <h1 className="text-4xl sm:text-5xl lg:text-6xl 2xl:text-7xl font-extrabold text-white tracking-tight leading-[1.15] mb-2 text-center md:text-left">
         Hello I am, <br />
         <span className="bg-gradient-to-r from-purple-400 via-violet-300 to-indigo-300 bg-clip-text text-transparent">
           Priyanshu!
@@ -74,12 +74,12 @@ export default function HeroIntro() {
       </h1>
 
       {/* Subtitle */}
-      <h2 className="text-xl sm:text-3xl lg:text-4xl font-bold text-zinc-100 tracking-tight mt-1 mb-2 text-center md:text-left">
+      <h2 className="text-xl sm:text-3xl lg:text-4xl 2xl:text-5xl font-bold text-zinc-100 tracking-tight mt-1 mb-2 text-center md:text-left">
         A Full Stack Developer.
       </h2>
 
       {/* Description */}
-      <p className="text-xs sm:text-sm md:text-base text-zinc-400 max-w-xs sm:max-w-md mb-5 leading-relaxed text-center md:text-left">
+      <p className="text-xs sm:text-sm md:text-base 2xl:text-lg text-zinc-400 max-w-xs sm:max-w-md 2xl:max-w-xl mb-5 leading-relaxed text-center md:text-left">
         Currently open to new opportunities in modern web development &amp; actively exploring CRM tech (Salesforce).
       </p>
 

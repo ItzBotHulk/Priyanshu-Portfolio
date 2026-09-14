@@ -129,7 +129,7 @@ export default function ExperienceSection() {
     <div
       ref={containerRef}
       id="experience"
-      className="w-full max-w-2xl flex flex-col justify-center will-change-transform py-1 sm:py-2 px-1 sm:px-3 md:px-0"
+      className="w-full max-w-2xl 2xl:max-w-3xl flex flex-col justify-center will-change-transform py-1 sm:py-2 px-1 sm:px-3 md:px-0"
       style={{
         transform: "translateX(-25px)",
         opacity: 0,
@@ -138,11 +138,11 @@ export default function ExperienceSection() {
     >
       {/* Editorial Section Header */}
       <div className="mb-2.5 sm:mb-3 text-left">
-        <div className="inline-flex items-center gap-1.5 text-[10px] sm:text-[11px] font-mono uppercase tracking-widest text-purple-400 mb-1">
+        <div className="inline-flex items-center gap-1.5 text-[10px] sm:text-[11px] 2xl:text-xs font-mono uppercase tracking-widest text-purple-400 mb-1">
           <span className="w-1.5 h-1.5 rounded-full bg-purple-500 animate-pulse" />
           <span>Career Journey</span>
         </div>
-        <h2 className="text-xl sm:text-2xl font-bold text-white tracking-tight">
+        <h2 className="text-xl sm:text-2xl 2xl:text-3xl font-bold text-white tracking-tight">
           Work <span className="text-zinc-400 font-normal">Experience</span>
         </h2>
       </div>

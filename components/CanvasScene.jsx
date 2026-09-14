@@ -462,14 +462,17 @@ outgoingLight = mix( outgoingLight, matcapOverlay, uMatcapStrength );
       const pCenter = centerProgress ? THREE.MathUtils.smoothstep(centerProgress.current, 0, 1) : 0;
       const pSlide = projectsSlideProgress ? THREE.MathUtils.smoothstep(projectsSlideProgress.current, 0, 1) : 0;
 
-      // Responsive X offsets:
-      // Monitor (>=1440): full wide offset (-1.65 / +1.85)
-      // Laptop (1024-1439): balanced offset (-1.35 / +1.45)
-      // Tablet (768-1023): compact safe offset (-0.80 / +0.85)
-      // Mobile (<768): centered (0)
-      const heroTargetX = isMonitor ? -1.65 : (isLaptop ? -1.35 : (isTablet ? -0.80 : 0));
-      const expTargetX = isMonitor ? 1.85 : (isLaptop ? 1.45 : (isTablet ? 0.85 : 0));
-      const projScaleFactor = isMonitor ? 1.0 : (isLaptop ? 0.80 : (isTablet ? 0.40 : 0));
+      // Dynamic responsive container width in Three.js world coordinates
+      const containerPx = screenW >= 2560 ? 1800 : (screenW >= 1536 ? 1520 : (screenW >= 1280 ? 1240 : screenW * 0.92));
+      const containerRatio = Math.min(containerPx / screenW, 0.92);
+      const containerHalfW = (vpW * containerRatio) / 2;
+
+      // Hero: Model docks comfortably in the left half, looking right at the intro text
+      const heroTargetX = !isMobile ? (isTablet ? -0.80 : -containerHalfW * 0.52) : 0;
+      // Experience: Model docks comfortably in the right half, looking left at the work experience cards
+      const expTargetX = !isMobile ? (isTablet ? 0.85 : containerHalfW * 0.52) : 0;
+      // Skills: Model docks in the right column stage area
+      const skillsTargetX = !isMobile ? (isTablet ? 0.90 : containerHalfW * 0.50) : 0;
 
       // Hero stance: smoothly shift from center (0) to left (heroTargetX) as user scrolls
       const heroShift = shiftProgress ? THREE.MathUtils.smoothstep(shiftProgress.current, 0, 1) : 1;
@@ -480,11 +483,24 @@ outgoingLight = mix( outgoingLight, matcapOverlay, uMatcapStrength );
       // Come smoothly from right to center (0) at sliding icons banner
       const centeredX = THREE.MathUtils.lerp(expX, 0, pCenter);
 
-      // Projects: dynamic left and right sliding at each project card
-      const dynamicProjX = (projectTargetX ? projectTargetX.current : -2.40) * projScaleFactor;
+      // Projects & Beyond: dynamic left and right sliding at each project card
+      const rawProjTarget = projectTargetX ? projectTargetX.current : 0;
+      let dynamicProjX = 0;
+      if (!isMobile) {
+        if (Math.abs(rawProjTarget - 1.38) < 0.05) {
+          dynamicProjX = skillsTargetX;
+        } else if (rawProjTarget < -0.5) {
+          dynamicProjX = -Math.min(containerHalfW * 0.72, vpW * 0.35);
+        } else if (rawProjTarget > 0.5) {
+          dynamicProjX = Math.min(containerHalfW * 0.72, vpW * 0.35);
+        } else {
+          dynamicProjX = 0;
+        }
+      }
+
       const rawTargetX = THREE.MathUtils.lerp(centeredX, dynamicProjX, pSlide);
       // Ensure targetX never leaves visible screen bounds
-      const maxSafeX = Math.max(vpW * 0.38, 0.4);
+      const maxSafeX = Math.max(vpW * 0.44, 0.4);
       const targetX = THREE.MathUtils.clamp(rawTargetX, -maxSafeX, maxSafeX);
 
       const pSkills = skillsProgress ? THREE.MathUtils.smoothstep(skillsProgress.current, 0, 1) : 0;
@@ -507,10 +523,10 @@ outgoingLight = mix( outgoingLight, matcapOverlay, uMatcapStrength );
           : Math.sin(expProgress * Math.PI) * -0.08 * (1 - pCenter)
         : 0;
 
-      // Responsive model scale tiers
-      let baseScale = 1.05;
-      let skillsScale = 1.42;
-      let portraitScale = 3.0;
+      // Responsive model scale tiers with graceful scaling for 2K/4K/Ultrawide displays
+      let baseScale = screenW >= 2560 ? 1.25 : (screenW >= 1536 ? 1.15 : 1.05);
+      let skillsScale = screenW >= 2560 ? 1.65 : (screenW >= 1536 ? 1.52 : 1.42);
+      let portraitScale = screenW >= 2560 ? 3.4 : (screenW >= 1536 ? 3.2 : 3.0);
 
       if (isMobile) {
         baseScale = 0.72;
