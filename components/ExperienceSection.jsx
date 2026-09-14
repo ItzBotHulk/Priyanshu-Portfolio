@@ -84,10 +84,13 @@ export default function ExperienceSection() {
 
     const getTargetProgress = () => {
       const scrollY = window.scrollY || 0;
-      // Phase 3: Enters between 850px and 1400px
-      const enter = Math.min(Math.max((scrollY - 850) / 550, 0), 1);
-      // Fades out when leaving experience track (~2550px -> 2850px)
-      const exit = Math.min(Math.max((scrollY - 2550) / 300, 0), 1);
+      const vh = window.innerHeight || 850;
+      const vhRatio = Math.min(Math.max(vh / 1000, 0.72), 1.35);
+
+      // Phase 3: Enters between 850px*vhRatio and 1400px*vhRatio
+      const enter = Math.min(Math.max((scrollY - 850 * vhRatio) / (550 * vhRatio), 0), 1);
+      // Fades out when leaving experience track (~2100px*vhRatio -> 2500px*vhRatio)
+      const exit = Math.min(Math.max((scrollY - 2100 * vhRatio) / (400 * vhRatio), 0), 1);
       return { enter, exit };
     };
 

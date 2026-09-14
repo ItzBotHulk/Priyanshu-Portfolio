@@ -33,12 +33,15 @@ export default function HeroIntro() {
       if (!containerRef.current) return;
       const scrollY = window.scrollY || 0;
 
-      // Phase 1: Welcome Page (0px -> 140px): HeroIntro is hidden, allowing Welcome page full focus
-      // Phase 2: Transition to Name Page (140px -> 460px): Smoothly fades in and slides into place
-      const enterProgress = Math.min(Math.max((scrollY - 140) / 320, 0), 1);
+      const vh = window.innerHeight || 850;
+      const vhRatio = Math.min(Math.max(vh / 1000, 0.72), 1.35);
 
-      // Phase 3: Transition to Experience Section (850px -> 1350px): Smoothly fades out
-      const exitProgress = Math.min(Math.max((scrollY - 850) / 500, 0), 1);
+      // Phase 1: Welcome Page: HeroIntro is hidden, allowing Welcome page full focus
+      // Phase 2: Transition to Name Page: Smoothly fades in and slides into place
+      const enterProgress = Math.min(Math.max((scrollY - 140 * vhRatio) / (320 * vhRatio), 0), 1);
+
+      // Phase 3: Transition to Experience Section: Smoothly fades out
+      const exitProgress = Math.min(Math.max((scrollY - 850 * vhRatio) / (500 * vhRatio), 0), 1);
 
       const opacity = (enterProgress * (1 - exitProgress)).toFixed(3);
       const translateX = ((1 - enterProgress) * 35).toFixed(2);

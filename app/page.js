@@ -14,12 +14,12 @@ export default function Home() {
       <Navbar />
 
       {/* 3D Canvas across the entire page (Hero -> Experience -> Projects) */}
-      <div className="fixed inset-0 w-full h-full pointer-events-none z-0">
+      <div className="fixed inset-0 w-full h-full pointer-events-none z-10">
         <CanvasScene />
       </div>
 
       {/* Interactive 3D Scroll Journey: 380vh track choreographing Hero -> Experience */}
-      <div className="relative w-full h-[380vh]">
+      <div className="relative w-full h-[380vh] z-20">
         <div className="sticky top-0 h-screen w-full flex items-center justify-center overflow-hidden">
 
           {/* Foreground Grid Container */}
@@ -44,8 +44,8 @@ export default function Home() {
         </div>
       </div>
 
-      {/* Full-width Moving Tech Icons Divider Banner */}
-      <div className="w-full relative z-20">
+      {/* Full-width Moving Tech Icons Divider Banner - passes behind the 3D model */}
+      <div className="w-full relative z-0">
         <MovingTechIcons scrollDriven={false} />
       </div>
 
