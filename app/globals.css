@@ -2,12 +2,18 @@
 
 html {
   scroll-behavior: smooth;
+  scroll-padding-top: 100px;
+}
+
+* {
+  font-family: var(--font-poppins), sans-serif;
 }
 
 @keyframes marquee {
   0% {
     transform: translate3d(0, 0, 0);
   }
+
   100% {
     transform: translate3d(-50%, 0, 0);
   }

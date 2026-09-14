@@ -1,25 +1,76 @@
 "use client";
 
-import React, { useState, useEffect, useRef } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 
 export default function Footer() {
   const currentYear = new Date().getFullYear();
-  const containerRef = useRef(null);
-  const [expandProgress, setExpandProgress] = useState(0);
+  const sectionRef = useRef(null);
+  const panelRef = useRef(null);
+  const targetProgress = useRef(0);
+  const currentProgress = useRef(0);
+  const [copied, setCopied] = useState(false);
+
+  const handleCopyEmail = (e) => {
+    e.preventDefault();
+    navigator.clipboard.writeText("prajapatipriyanshu123p2@gmail.com");
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2200);
+  };
 
   useEffect(() => {
+    let animId = null;
+    let lastTime = 0;
+    let isRunning = false;
+
+    const startAnimation = () => {
+      if (!isRunning) {
+        isRunning = true;
+        lastTime = performance.now();
+        animId = requestAnimationFrame(update);
+      }
+    };
+
     const handleScroll = () => {
-      if (!containerRef.current) return;
-      const rect = containerRef.current.getBoundingClientRect();
-      const scrollDist = containerRef.current.offsetHeight - window.innerHeight;
+      if (!sectionRef.current) return;
+      const rect = sectionRef.current.getBoundingClientRect();
+      if (rect.top > window.innerHeight * 1.5) return;
+      const scrollDist = sectionRef.current.offsetHeight - window.innerHeight;
       if (scrollDist <= 0) return;
 
-      // When the top of this container reaches the viewport top
       const currentScroll = -rect.top;
       const progress = Math.min(Math.max(currentScroll / scrollDist, 0), 1);
-      setExpandProgress(progress);
+      targetProgress.current = progress;
+      startAnimation();
+    };
+
+    const update = (time) => {
+      const dt = Math.min((time - lastTime) / 1000, 0.1);
+      lastTime = time;
+
+      currentProgress.current += (targetProgress.current - currentProgress.current) * (1 - Math.exp(-7 * dt));
+      const p = currentProgress.current;
+
+      const slideProgress = Math.min(Math.max(p / 0.85, 0), 1);
+      const ease = 1 - Math.pow(1 - slideProgress, 3);
+      const currentY = (1 - ease) * 100;
+      const opacity = Math.min(Math.max(slideProgress * 1.5, 0), 1);
+      const isInteractive = slideProgress >= 0.75;
+
+      if (panelRef.current) {
+        panelRef.current.style.transform = `translate3d(0, ${currentY.toFixed(2)}%, 0)`;
+        panelRef.current.style.opacity = opacity.toFixed(3);
+        panelRef.current.style.pointerEvents = isInteractive ? "auto" : "none";
+        panelRef.current.style.visibility = slideProgress > 0.005 ? "visible" : "hidden";
+      }
+
+      if (Math.abs(targetProgress.current - currentProgress.current) < 0.0008) {
+        currentProgress.current = targetProgress.current;
+        isRunning = false;
+      } else {
+        animId = requestAnimationFrame(update);
+      }
     };
 
     window.addEventListener("scroll", handleScroll, { passive: true });
@@ -29,103 +80,114 @@ export default function Footer() {
     return () => {
       window.removeEventListener("scroll", handleScroll);
       window.removeEventListener("resize", handleScroll);
+      if (animId) cancelAnimationFrame(animId);
     };
   }, []);
 
-  // Emergence calculation:
-  // 0.0 -> 0.25: 3D model zooms into face in background (footer hidden)
-  // 0.25 -> 0.85: Footer emerges & blossoms directly from the model's face (50% X, 42% Y)
-  // 0.85 -> 1.0: Footer takes over full screen, completely visible and interactive
-  const emergeT = Math.min(Math.max((expandProgress - 0.25) / 0.60, 0), 1);
-  const ease = emergeT * emergeT * (3 - 2 * emergeT);
-
-  const scale = 0.2 + 0.8 * ease;
-  const opacity = ease;
-  const isFullyOpen = expandProgress >= 0.85;
-
   return (
     <section
-      ref={containerRef}
-      className="relative w-full h-[200vh] bg-transparent"
+      ref={sectionRef}
+      className="relative w-full h-[180vh] bg-transparent"
     >
       {/* Sticky Full-Screen Viewport */}
-      <div className="sticky top-0 w-full h-screen overflow-hidden flex flex-col justify-center items-center pointer-events-none">
-        
-        {/* Expanding Glow Pulse from the Face */}
-        {emergeT > 0.05 && emergeT < 0.95 && (
-          <div
-            className="absolute rounded-full pointer-events-none z-10 border border-purple-400/60 shadow-[0_0_80px_rgba(168,85,247,0.7),inset_0_0_40px_rgba(236,72,153,0.5)] transition-none"
-            style={{
-              left: "50%",
-              top: "42%",
-              width: `${ease * 140}vw`,
-              height: `${ease * 140}vw`,
-              transform: "translate(-50%, -50%)",
-              opacity: 1 - ease * 0.5,
-            }}
-          />
-        )}
+      <div className="sticky top-0 w-full h-screen overflow-y-auto md:overflow-hidden flex flex-col justify-center items-center pointer-events-none">
 
-        {/* Full-Screen Footer Content (Expands outward from the model's face) */}
+        {/* Full-Screen Footer Content (Slides smoothly up from down on scroll) */}
         <div
-          className={`w-full h-full bg-black border-t border-white/10 flex flex-col justify-between items-center px-6 py-10 md:py-14 select-none transition-none ${
-            isFullyOpen ? "pointer-events-auto" : "pointer-events-none"
-          }`}
+          ref={panelRef}
+          className="w-full h-full min-h-screen bg-zinc-950 border-t border-white/[0.08] shadow-[0_-25px_60px_rgba(0,0,0,0.95)] flex flex-col justify-between items-center px-4 sm:px-6 py-6 sm:py-10 md:py-14 select-none will-change-transform pointer-events-none"
           style={{
-            transform: isFullyOpen ? "none" : `scale(${scale})`,
-            transformOrigin: "50% 42%",
-            clipPath: isFullyOpen
-              ? "none"
-              : `circle(${ease * 160}% at 50% 42%)`,
-            opacity: opacity,
-            visibility: emergeT > 0.01 ? "visible" : "hidden",
+            transform: "translate3d(0, 100%, 0)",
+            opacity: 0,
+            visibility: "hidden",
           }}
         >
           {/* Subtle Background Ambiance Glow */}
-          <div className="absolute top-1/3 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[550px] h-[350px] bg-purple-950/25 blur-[120px] pointer-events-none rounded-full" />
+          <div className="absolute top-1/3 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[350px] sm:w-[550px] h-[250px] sm:h-[350px] bg-purple-950/20 blur-[130px] pointer-events-none rounded-full" />
 
-          {/* Top Header */}
-          <div className="w-full max-w-4xl text-center flex flex-col items-center pt-2 md:pt-6 z-10">
-            <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full border border-purple-500/30 bg-purple-950/30 backdrop-blur-md text-xs text-purple-300 font-mono mb-3 tracking-wide shadow-[0_0_15px_rgba(168,85,247,0.15)]">
-              <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-              <span>Available for opportunities</span>
-            </div>
+          {/* Clean, Human & Professional Header */}
+          <div className="w-full max-w-4xl text-center flex flex-col items-center pt-2 md:pt-4 z-10">
             <h2 className="text-3xl sm:text-5xl md:text-6xl font-bold tracking-tight text-white mb-3">
-              Let&apos;s Connect &amp;{" "}
-              <span className="bg-gradient-to-r from-purple-400 via-pink-400 to-indigo-400 bg-clip-text text-transparent">
-                Collaborate
-              </span>
+              Get In Touch
             </h2>
-            <p className="text-zinc-400 max-w-lg text-sm sm:text-base font-light">
-              Have an exciting project, full-time role, or idea in mind? Feel free to reach out anytime!
+            <p className="text-zinc-400 max-w-md text-xs sm:text-sm md:text-base leading-relaxed px-2 font-normal">
+              Whether you have an opportunity, a project to build, or just want to say hi — feel free to drop a line.
             </p>
           </div>
 
-          {/* Main Content: Socials & Email on Left, Pixel Workstation GIF on Right */}
-          <div className="w-full max-w-5xl my-auto py-6 z-10">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-8 md:gap-12 items-center justify-items-center">
-              
-              {/* Left Column: Glass Card with Social Links & Email Address */}
-              <div className="w-full max-w-md p-6 sm:p-8 rounded-2xl bg-zinc-900/50 backdrop-blur-xl border border-white/10 shadow-[0_8px_32px_rgba(0,0,0,0.6)] flex flex-col items-center justify-center gap-5 text-center hover:border-purple-500/30 transition-all duration-300">
-                <span className="text-xs uppercase tracking-widest text-zinc-400 font-semibold">
-                  Connect With Me
+          {/* Main Content: Actions on Left, Pixel Workstation GIF on Right */}
+          <div className="w-full max-w-4xl my-auto py-4 sm:py-6 z-10">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 sm:gap-8 md:gap-12 items-center justify-items-center">
+
+              {/* Left Column: Glass Card with Actions, Socials & One-Click Copy */}
+              <div className="w-full max-w-sm sm:max-w-md p-6 sm:p-8 rounded-2xl bg-zinc-900/60 backdrop-blur-xl border border-white/[0.08] shadow-[0_8px_32px_rgba(0,0,0,0.6)] flex flex-col items-center justify-center gap-5 sm:gap-6 text-center hover:border-purple-500/30 transition-all duration-300">
+                <span className="text-[11px] sm:text-xs uppercase tracking-wider text-zinc-400 font-medium">
+                  Direct Inquiries
                 </span>
 
+                {/* Interactive Copy Email Pill */}
+                <button
+                  type="button"
+                  onClick={handleCopyEmail}
+                  title="Click to copy email"
+                  className="w-full py-3 px-4 rounded-xl bg-white/[0.04] hover:bg-white/[0.08] border border-white/10 hover:border-purple-400/40 text-xs sm:text-sm text-zinc-200 hover:text-white font-mono transition-all duration-200 flex items-center justify-center gap-2.5 cursor-pointer active:scale-[0.99] group shadow-sm"
+                >
+                  {copied ? (
+                    <>
+                      <svg
+                        className="w-3.5 h-3.5 text-emerald-400 shrink-0"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                        stroke="currentColor"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M5 13l4 4L19 7"
+                        />
+                      </svg>
+                      <span className="text-emerald-400 font-medium">
+                        Email copied to clipboard!
+                      </span>
+                    </>
+                  ) : (
+                    <>
+                      <svg
+                        className="w-3.5 h-3.5 text-zinc-400 group-hover:text-purple-400 transition-colors shrink-0"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                        stroke="currentColor"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"
+                        />
+                      </svg>
+                      <span className="truncate">
+                        prajapatipriyanshu123p2@gmail.com
+                      </span>
+                    </>
+                  )}
+                </button>
+
                 {/* Social Links */}
-                <div className="flex items-center justify-center gap-5">
+                <div className="flex items-center justify-center gap-3 sm:gap-4 pt-1">
                   <Link
                     href="https://www.linkedin.com/in/priyanshu-20x/"
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="group p-3 rounded-xl bg-white/[0.05] hover:bg-white/[0.12] border border-white/10 hover:border-purple-400/60 transition-all duration-300 hover:scale-110 hover:shadow-[0_0_20px_rgba(168,85,247,0.35)]"
-                    aria-label="LinkedIn"
+                    className="p-2.5 rounded-xl bg-white/[0.04] hover:bg-white/[0.1] border border-white/10 hover:border-purple-400/50 transition-all duration-200 hover:scale-110"
+                    aria-label="LinkedIn Profile"
                   >
                     <Image
                       src="/bgs/linkedin.svg"
                       alt="LinkedIn"
-                      width={26}
-                      height={26}
-                      className="w-6 h-6 invert brightness-200 transition-transform duration-300 group-hover:scale-110"
+                      width={22}
+                      height={22}
+                      className="w-5 h-5 invert brightness-200"
                     />
                   </Link>
 
@@ -133,53 +195,44 @@ export default function Footer() {
                     href="https://github.com/ItzBotHulk"
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="group p-3 rounded-xl bg-white/[0.05] hover:bg-white/[0.12] border border-white/10 hover:border-purple-400/60 transition-all duration-300 hover:scale-110 hover:shadow-[0_0_20px_rgba(168,85,247,0.35)]"
-                    aria-label="GitHub"
+                    className="p-2.5 rounded-xl bg-white/[0.04] hover:bg-white/[0.1] border border-white/10 hover:border-purple-400/50 transition-all duration-200 hover:scale-110"
+                    aria-label="GitHub Profile"
                   >
                     <Image
                       src="/bgs/github.svg"
                       alt="GitHub"
-                      width={26}
-                      height={26}
-                      className="w-6 h-6 invert brightness-200 transition-transform duration-300 group-hover:scale-110"
+                      width={22}
+                      height={22}
+                      className="w-5 h-5 invert brightness-200"
                     />
                   </Link>
 
                   <Link
                     href="mailto:prajapatipriyanshu123p2@gmail.com"
-                    className="group p-3 rounded-xl bg-white/[0.05] hover:bg-white/[0.12] border border-white/10 hover:border-purple-400/60 transition-all duration-300 hover:scale-110 hover:shadow-[0_0_20px_rgba(168,85,247,0.35)]"
-                    aria-label="Email"
+                    className="p-2.5 rounded-xl bg-white/[0.04] hover:bg-white/[0.1] border border-white/10 hover:border-purple-400/50 transition-all duration-200 hover:scale-110"
+                    aria-label="Send Direct Email"
                   >
                     <Image
                       src="/bgs/mail.svg"
                       alt="Email"
-                      width={26}
-                      height={26}
-                      className="w-6 h-6 invert brightness-200 transition-transform duration-300 group-hover:scale-110"
+                      width={22}
+                      height={22}
+                      className="w-5 h-5 invert brightness-200"
                     />
                   </Link>
                 </div>
-
-                {/* Email Pill Link */}
-                <a
-                  href="mailto:prajapatipriyanshu123p2@gmail.com"
-                  className="w-full py-2.5 px-4 rounded-xl bg-white/[0.03] hover:bg-purple-900/20 border border-white/10 hover:border-purple-500/40 text-xs sm:text-sm text-zinc-300 hover:text-white font-mono transition-all duration-300 tracking-wide flex items-center justify-center gap-2 group"
-                >
-                  <span className="w-1.5 h-1.5 rounded-full bg-purple-400 group-hover:scale-125 transition-transform" />
-                  <span>prajapatipriyanshu123p2@gmail.com</span>
-                </a>
               </div>
 
               {/* Right Column: Workstation Pixel Art GIF */}
               <div className="flex items-center justify-center">
-                <div className="relative w-52 h-52 sm:w-64 sm:h-64 flex items-center justify-center">
+                <div className="relative w-48 h-48 sm:w-60 sm:h-60 md:w-72 md:h-72 lg:w-80 lg:h-80 flex items-center justify-center">
                   <Image
                     src="/bgs/comp.gif"
                     alt="Developer Workstation"
-                    width={280}
-                    height={280}
+                    width={320}
+                    height={320}
                     unoptimized
-                    className="object-contain filter drop-shadow-[0_12px_35px_rgba(0,0,0,0.85)]"
+                    className="w-full h-full object-contain"
                   />
                 </div>
               </div>
@@ -187,9 +240,9 @@ export default function Footer() {
           </div>
 
           {/* Bottom Copyright Notice */}
-          <div className="w-full pt-4 border-t border-white/5 text-center z-10">
-            <p className="text-xs sm:text-sm text-zinc-400 tracking-wide font-normal">
-              Copyright &copy; {currentYear} Priyanshu&apos;s Portfolio - All rights reserved!
+          <div className="w-full pt-3 sm:pt-4 border-t border-white/[0.06] text-center z-10 flex items-center justify-center max-w-4xl text-zinc-500 text-[11px] sm:text-xs">
+            <p>
+              &copy; {currentYear} Priyanshu Prajapati. All rights reserved.
             </p>
           </div>
         </div>

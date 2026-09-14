@@ -1,25 +1,29 @@
-import { Geist, Geist_Mono } from "next/font/google";
+import { Poppins } from "next/font/google";
 import "./globals.css";
+import DynamicBackground from "@/components/DynamicBackground";
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
-  subsets: ["latin"],
-});
-
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
-  subsets: ["latin"],
+const poppins = Poppins({
+  subsets: ['latin'],
+  display: 'swap',
+  variable: '--font-poppins',
+  weight: ['100', '200', '300', '400', '500', '600', '700', '800', '900']
 });
 
 export const metadata = {
-  title: "Priyanshu Portfolio",
-  description: "Portfolio built with Next.js and React Three Fiber",
+  title: "Portfolio - Priyanshu Prajapati",
+  description: "Its a portfolio of Priyanshu, A full stack dev.",
 };
 
 export default function RootLayout({ children }) {
   return (
-    <html lang="en" className={`${geistSans.variable} ${geistMono.variable}`} suppressHydrationWarning>
-      <body suppressHydrationWarning>{children}</body>
+    <html lang="en" className={poppins.variable} suppressHydrationWarning>
+      <body
+        className="overflow-x-hidden antialiased bg-black selection:bg-purple-500/30 text-zinc-100 min-h-screen relative"
+        suppressHydrationWarning
+      >
+        <DynamicBackground />
+        {children}
+      </body>
     </html>
   );
 }

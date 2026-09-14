@@ -2,7 +2,7 @@
 
 import { Suspense, useEffect, useRef, useState, useMemo } from "react";
 import { Canvas, useFrame, useThree } from "@react-three/fiber";
-import { useGLTF, useAnimations, Html, useProgress, useTexture, Billboard } from "@react-three/drei";
+import { useGLTF, useAnimations, Html, useProgress, Billboard } from "@react-three/drei";
 import * as THREE from "three";
 
 // Dynamic 3D Orbiting Tech Icons Configuration for "Messy" 3D Cloud (Tighter range, no bobble)
@@ -276,6 +276,9 @@ function Loader() {
   );
 }
 
+// Configurable translucent MatCap opacity so underlying jacket and clothing textures remain visible
+const MAX_MATCAP_OPACITY = 0.40;
+
 function Model({
   shiftProgress,
   experienceProgress,
@@ -289,19 +292,33 @@ function Model({
   projectsProgress,
   skillsProgress,
   headZoomProgress,
-  selectedMatcap = "/matcap/mat-5.png",
+  selectedMatcap = null,
 }) {
   const groupRef = useRef(null);
   const gltf = useGLTF("/model/scene.gltf");
   const { actions } = useAnimations(gltf.animations, groupRef);
-  const initialMatcap = useTexture("/matcap/mat-5.png");
-  const currentTextureRef = useRef(initialMatcap);
   const texturesRef = useRef({});
-
-  const materialsRef = useRef([]);
   const auraLightRef = useRef(null);
 
-  // Pre-cache all 4 allowed textures for 0ms, seamless switching
+  // 1x1 dummy fallback texture for samplers before matcap is loaded
+  const dummyTex = useMemo(() => {
+    const tex = new THREE.DataTexture(new Uint8Array([255, 255, 255, 255]), 1, 1, THREE.RGBAFormat);
+    tex.needsUpdate = true;
+    return tex;
+  }, []);
+
+  // Shared uniforms across all model materials for zero-overhead, 60fps GPU blending
+  const matcapUniforms = useMemo(() => ({
+    uMatcapA: { value: dummyTex },
+    uMatcapB: { value: dummyTex },
+    uMatcapStrength: { value: 0.0 },
+    uMatcapCrossfade: { value: 0.0 },
+  }), [dummyTex]);
+
+  const targetStrengthRef = useRef(0.0);
+  const activeSlotRef = useRef("A");
+
+  // Pre-cache all allowed textures for 0ms, seamless switching
   useEffect(() => {
     const loader = new THREE.TextureLoader();
     ALLOWED_MATCAPS.forEach((item) => {
@@ -312,50 +329,98 @@ function Model({
     });
   }, []);
 
+  // Enhance original PBR materials with a smooth MatCap blending layer via onBeforeCompile
   useEffect(() => {
     if (gltf.scene) {
-      materialsRef.current = [];
       gltf.scene.traverse((child) => {
         if (child.isMesh) {
           child.frustumCulled = false;
-          const prevMat = child.material;
-          const newMat = new THREE.MeshMatcapMaterial({
-            matcap: currentTextureRef.current || initialMatcap,
-            skinning: !!child.isSkinnedMesh,
-            map: prevMat?.map || null,
-            normalMap: prevMat?.normalMap || null,
-            color: new THREE.Color("#ffffff"),
-          });
-          child.material = newMat;
-          materialsRef.current.push(newMat);
+          const mat = child.material;
+
+          mat.onBeforeCompile = (shader) => {
+            shader.uniforms.uMatcapA = matcapUniforms.uMatcapA;
+            shader.uniforms.uMatcapB = matcapUniforms.uMatcapB;
+            shader.uniforms.uMatcapStrength = matcapUniforms.uMatcapStrength;
+            shader.uniforms.uMatcapCrossfade = matcapUniforms.uMatcapCrossfade;
+
+            shader.fragmentShader = shader.fragmentShader.replace(
+              '#include <common>',
+              `#include <common>
+uniform sampler2D uMatcapA;
+uniform sampler2D uMatcapB;
+uniform float uMatcapStrength;
+uniform float uMatcapCrossfade;
+`
+            );
+
+            shader.fragmentShader = shader.fragmentShader.replace(
+              '#include <opaque_fragment>',
+              `
+vec3 mcViewDir = normalize( vViewPosition );
+vec3 mcX = normalize( vec3( mcViewDir.z, 0.0, - mcViewDir.x ) );
+vec3 mcY = cross( mcViewDir, mcX );
+vec2 mcUv = vec2( dot( mcX, normal ), dot( mcY, normal ) ) * 0.495 + 0.5;
+
+vec4 mcColorA = sRGBTransferEOTF( texture2D( uMatcapA, mcUv ) );
+vec4 mcColorB = sRGBTransferEOTF( texture2D( uMatcapB, mcUv ) );
+vec3 blendedMc = mix( mcColorA.rgb, mcColorB.rgb, uMatcapCrossfade );
+
+// Preserve the authentic base textures (jacket, pants, normal maps) under the matcap sheen
+vec3 texturedMatcap = outgoingLight * blendedMc * 1.45;
+vec3 matcapOverlay = mix( blendedMc, texturedMatcap, 0.70 );
+
+outgoingLight = mix( outgoingLight, matcapOverlay, uMatcapStrength );
+#include <opaque_fragment>
+`
+            );
+          };
+
+          mat.customProgramCacheKey = () => "matcap_blended_standard_v3";
+          mat.needsUpdate = true;
         }
       });
     }
-  }, [gltf.scene, initialMatcap]);
+  }, [gltf.scene, matcapUniforms]);
 
-  // Instantaneous texture swapping when section or selectedMatcap changes
+  // Softly trigger target strength and crossfade slots when selectedMatcap changes
   useEffect(() => {
-    if (!selectedMatcap || materialsRef.current.length === 0) return;
+    if (!selectedMatcap) {
+      // Softly dissolve back to authentic default material (0% opacity)
+      targetStrengthRef.current = 0.0;
+      return;
+    }
 
-    const applyTexture = (tex) => {
+    const setTextureToSlot = (tex) => {
       tex.colorSpace = THREE.SRGBColorSpace;
-      currentTextureRef.current = tex;
-      materialsRef.current.forEach((mat) => {
-        mat.matcap = tex;
-        mat.needsUpdate = true;
-      });
+      if (targetStrengthRef.current === 0.0) {
+        // First hover: load into Slot A, set crossfade to 0
+        matcapUniforms.uMatcapA.value = tex;
+        matcapUniforms.uMatcapCrossfade.value = 0.0;
+        activeSlotRef.current = "A";
+      } else {
+        // Switching between cards: crossfade between A and B
+        if (activeSlotRef.current === "A") {
+          matcapUniforms.uMatcapB.value = tex;
+          activeSlotRef.current = "B";
+        } else {
+          matcapUniforms.uMatcapA.value = tex;
+          activeSlotRef.current = "A";
+        }
+      }
+      // Low opacity target so underlying textures remain clearly visible
+      targetStrengthRef.current = MAX_MATCAP_OPACITY;
     };
 
     if (texturesRef.current[selectedMatcap]) {
-      applyTexture(texturesRef.current[selectedMatcap]);
+      setTextureToSlot(texturesRef.current[selectedMatcap]);
     } else {
       const loader = new THREE.TextureLoader();
       loader.load(selectedMatcap, (loadedTex) => {
         texturesRef.current[selectedMatcap] = loadedTex;
-        applyTexture(loadedTex);
+        setTextureToSlot(loadedTex);
       });
     }
-  }, [selectedMatcap]);
+  }, [selectedMatcap, matcapUniforms]);
 
   useEffect(() => {
     if (actions) {
@@ -368,26 +433,59 @@ function Model({
   }, [actions]);
 
   useFrame((state, delta) => {
+    // Silky smooth, soft damp of MatCap strength (0.0 <-> 1.0)
+    matcapUniforms.uMatcapStrength.value = THREE.MathUtils.damp(
+      matcapUniforms.uMatcapStrength.value,
+      targetStrengthRef.current,
+      3.2,
+      delta
+    );
+
+    // Silky smooth damp of crossfade between cards (0.0 <-> 1.0)
+    const targetCrossfade = activeSlotRef.current === "A" ? 0.0 : 1.0;
+    matcapUniforms.uMatcapCrossfade.value = THREE.MathUtils.damp(
+      matcapUniforms.uMatcapCrossfade.value,
+      targetCrossfade,
+      3.2,
+      delta
+    );
+
     if (groupRef.current) {
-      const isDesktop = typeof window !== "undefined" && window.innerWidth >= 768;
+      const vpW = state.viewport.width;
+      const screenW = state.size.width;
+      const isMobile = screenW < 768;
+      const isTablet = screenW >= 768 && screenW < 1024;
+      const isLaptop = screenW >= 1024 && screenW < 1440;
+      const isMonitor = screenW >= 1440;
+
       const pProj = projectsProgress ? THREE.MathUtils.smoothstep(projectsProgress.current, 0, 1) : 0;
       const pCenter = centerProgress ? THREE.MathUtils.smoothstep(centerProgress.current, 0, 1) : 0;
       const pSlide = projectsSlideProgress ? THREE.MathUtils.smoothstep(projectsSlideProgress.current, 0, 1) : 0;
 
-      // Hero stance: smoothly shift from middle (0) to left (-1.65) on scroll
-      const heroShift = THREE.MathUtils.smoothstep(shiftProgress.current, 0, 1);
-      const heroX = isDesktop ? -1.65 * heroShift : 0;
-      // Experience stance: glide across to right (+1.85) to stand clearly to the right of work experience
-      const expProgress = experienceProgress.current;
-      const expX = isDesktop ? THREE.MathUtils.lerp(heroX, 1.85, expProgress) : 0;
-      // Come smoothly from right to center (0) at sliding icons banner
-      const centeredX = isDesktop ? THREE.MathUtils.lerp(expX, 0, pCenter) : 0;
+      // Responsive X offsets:
+      // Monitor (>=1440): full wide offset (-1.65 / +1.85)
+      // Laptop (1024-1439): balanced offset (-1.35 / +1.45)
+      // Tablet (768-1023): compact safe offset (-0.80 / +0.85)
+      // Mobile (<768): centered (0)
+      const heroTargetX = isMonitor ? -1.65 : (isLaptop ? -1.35 : (isTablet ? -0.80 : 0));
+      const expTargetX = isMonitor ? 1.85 : (isLaptop ? 1.45 : (isTablet ? 0.85 : 0));
+      const projScaleFactor = isMonitor ? 1.0 : (isLaptop ? 0.80 : (isTablet ? 0.40 : 0));
 
-      // Projects: dynamic left and right sliding at each project card (-2.40 for Left, +2.40 for Right)
-      const dynamicProjX = projectTargetX ? projectTargetX.current : -2.40;
-      const targetX = isDesktop
-        ? THREE.MathUtils.lerp(centeredX, dynamicProjX, pSlide)
-        : THREE.MathUtils.lerp(0, dynamicProjX * 0.5, pSlide);
+      // Hero stance: smoothly shift from center (0) to left (heroTargetX) as user scrolls
+      const heroShift = shiftProgress ? THREE.MathUtils.smoothstep(shiftProgress.current, 0, 1) : 1;
+      const heroX = THREE.MathUtils.lerp(0, heroTargetX, heroShift);
+      // Experience stance: glide across to right to stand clearly beside work experience
+      const expProgress = experienceProgress.current;
+      const expX = THREE.MathUtils.lerp(heroX, expTargetX, expProgress);
+      // Come smoothly from right to center (0) at sliding icons banner
+      const centeredX = THREE.MathUtils.lerp(expX, 0, pCenter);
+
+      // Projects: dynamic left and right sliding at each project card
+      const dynamicProjX = (projectTargetX ? projectTargetX.current : -2.40) * projScaleFactor;
+      const rawTargetX = THREE.MathUtils.lerp(centeredX, dynamicProjX, pSlide);
+      // Ensure targetX never leaves visible screen bounds
+      const maxSafeX = Math.max(vpW * 0.38, 0.4);
+      const targetX = THREE.MathUtils.clamp(rawTargetX, -maxSafeX, maxSafeX);
 
       const pSkills = skillsProgress ? THREE.MathUtils.smoothstep(skillsProgress.current, 0, 1) : 0;
 
@@ -403,33 +501,47 @@ function Model({
 
       // Dynamic banking lean during transit & dynamic tilt in Skills section
       const curProjBank = projectBankZ ? projectBankZ.current : 0;
-      const baseRotZ = isDesktop
+      const baseRotZ = !isMobile
         ? pCenter > 0.99
           ? curProjBank
           : Math.sin(expProgress * Math.PI) * -0.08 * (1 - pCenter)
         : 0;
 
-      const baseScale = isDesktop ? 1.05 : 0.85;
-      const skillsScale = isDesktop ? 1.42 : 1.10;
-      const targetSkillsY = -1.42;
+      // Responsive model scale tiers
+      let baseScale = 1.05;
+      let skillsScale = 1.42;
+      let portraitScale = 3.0;
+
+      if (isMobile) {
+        baseScale = 0.72;
+        skillsScale = 0.95;
+        portraitScale = 2.0;
+      } else if (isTablet) {
+        baseScale = 0.88;
+        skillsScale = 1.15;
+        portraitScale = 2.4;
+      } else if (isLaptop) {
+        baseScale = 0.98;
+        skillsScale = 1.30;
+        portraitScale = 2.7;
+      }
+
+      const targetSkillsY = isMobile ? -1.50 : (isTablet ? -1.45 : -1.42);
 
       const pHead = headZoomProgress ? THREE.MathUtils.smoothstep(headZoomProgress.current, 0, 1) : 0;
 
-      // In Skills section: stylish dynamic hero tilt (leaning angle towards skills, straightens when centered in Education)
+      // In Skills section: stylish dynamic hero tilt
       const centerFactor = THREE.MathUtils.clamp(Math.abs(dynamicProjX) / 1.38, 0, 1);
-      const skillsTiltZ = isDesktop ? 0.18 : 0.10;
-      const skillsTiltX = isDesktop ? 0.08 : 0.04;
+      const skillsTiltZ = !isMobile ? (isTablet ? 0.10 : 0.18) : 0.05;
+      const skillsTiltX = !isMobile ? 0.08 : 0.04;
       const targetRotZ = THREE.MathUtils.lerp(baseRotZ, skillsTiltZ * centerFactor, pSkills);
       const targetRotX = THREE.MathUtils.lerp(0, skillsTiltX, pSkills);
       const finalRotZ = THREE.MathUtils.lerp(targetRotZ, 0, pHead);
       const finalRotX = THREE.MathUtils.lerp(targetRotX, 0, pHead);
 
       // Face-Centered Zoom Choreography:
-      // Stage 1 (0 -> 0.45): Zooms directly into the character's face, face clearly visible & centered
-      // Stage 2 (0.45 -> 1.0): Holds the face centered as the full-screen footer emerges directly from the face!
       let headScale, targetZ, headYOffset;
-      const portraitScale = isDesktop ? 3.0 : 2.2;
-      const portraitZ = 0.45;
+      const portraitZ = isMobile ? 0.25 : 0.45;
       const headLocalY = 1.88;
       const startingHeadWorldY = targetSkillsY + headLocalY * skillsScale;
 
@@ -450,8 +562,10 @@ function Model({
       const targetScale = pHead > 0 ? headScale : normalScale;
 
       // Vertical Y positioning:
-      const bannerShiftY = THREE.MathUtils.lerp(-0.90, -1.02, pCenter);
-      const targetProjectY = -1.38;
+      const bannerShiftY = isMobile
+        ? -1.18
+        : (isTablet ? -1.06 : THREE.MathUtils.lerp(-0.90, -1.02, pCenter));
+      const targetProjectY = isMobile ? -1.58 : (isTablet ? -1.46 : -1.38);
       const skillsBaseY = THREE.MathUtils.lerp(
         THREE.MathUtils.lerp(bannerShiftY, targetProjectY, pSlide),
         targetSkillsY,
@@ -462,23 +576,27 @@ function Model({
       const curScrollDown = (1 - pHead) * scrollDownY;
       const floatY = baseY + curScrollDown + Math.sin(state.clock.elapsedTime * 1.5) * 0.03 * (1 - pHead);
 
-      // Ensure mesh colors stay pure white so mat-5, mat-7, mat-18, mat-19 display authentic tones
-      for (let i = 0; i < materialsRef.current.length; i++) {
-        materialsRef.current[i].color.set("#ffffff");
-      }
-
-      // Dynamic Attached Glowing Aura Light synchronized to active section matcap
-      const activeItem = ALLOWED_MATCAPS.find((m) => m.file === selectedMatcap) || ALLOWED_MATCAPS[0];
-      const targetAura = new THREE.Color(activeItem.auraColor);
-      const pulse = Math.sin(state.clock.elapsedTime * 2.8) * 0.2;
-
+      // Aura Light softly tracks the matcap strength and target aura color
       if (auraLightRef.current) {
-        auraLightRef.current.color.lerp(targetAura, 0.1);
-        const baseIntensity = THREE.MathUtils.lerp(1.2, 3.2, expProgress);
+        const activeItem = selectedMatcap
+          ? ALLOWED_MATCAPS.find((m) => m.file === selectedMatcap)
+          : null;
+
+        const targetAuraColor = activeItem
+          ? new THREE.Color(activeItem.auraColor)
+          : new THREE.Color("#818cf8");
+
+        auraLightRef.current.color.lerp(targetAuraColor, THREE.MathUtils.clamp(delta * 3.5, 0, 1));
+
+        const normStrength = Math.min(matcapUniforms.uMatcapStrength.value / MAX_MATCAP_OPACITY, 1.0);
+        const pulse = Math.sin(state.clock.elapsedTime * 2.8) * 0.2;
+        const baseIntensity = THREE.MathUtils.lerp(1.5, 3.5, expProgress);
+        const targetIntensity = THREE.MathUtils.lerp(0.6, baseIntensity + pulse, normStrength);
+
         auraLightRef.current.intensity = THREE.MathUtils.damp(
           auraLightRef.current.intensity,
-          baseIntensity + pulse,
-          4,
+          targetIntensity,
+          3.2,
           delta
         );
       }
@@ -570,15 +688,24 @@ function Model({
 
 // Camera controller: tilts from Top to Front, frames experience, and subtly tracks descending character
 function ScrollCameraController({ tiltProgress, experienceProgress, projectsProgress }) {
-  const { camera } = useThree();
+  const { camera, size } = useThree();
+
+  const isMobile = size.width < 768;
+  const isTablet = size.width >= 768 && size.width < 1024;
 
   const topPos = useRef(new THREE.Vector3(0, 3.8, 0.3));
-  const frontPos = useRef(new THREE.Vector3(0, 0.1, 3.6));
-  const expPos = useRef(new THREE.Vector3(0.25, 0.15, 3.75));
+  const frontZ = isMobile ? 4.1 : (isTablet ? 3.85 : 3.6);
+  const frontPos = useRef(new THREE.Vector3(0, 0.1, frontZ));
+  const expPos = useRef(new THREE.Vector3(isMobile ? 0 : (isTablet ? 0.15 : 0.25), 0.15, frontZ + 0.15));
   const lookTarget = useRef(new THREE.Vector3(0, -0.05, 0));
   const currentTarget = useRef(new THREE.Vector3(0, 3.8, 0.3));
 
   useFrame((state, delta) => {
+    const currentFrontZ = size.width < 768 ? 4.1 : (size.width < 1024 ? 3.85 : 3.6);
+    frontPos.current.z = currentFrontZ;
+    expPos.current.z = currentFrontZ + 0.15;
+    expPos.current.x = size.width < 768 ? 0 : (size.width < 1024 ? 0.15 : 0.25);
+
     const basePos = new THREE.Vector3().lerpVectors(topPos.current, frontPos.current, tiltProgress.current);
     currentTarget.current.lerpVectors(basePos, expPos.current, experienceProgress.current);
 
@@ -595,10 +722,6 @@ function ScrollCameraController({ tiltProgress, experienceProgress, projectsProg
 }
 
 useGLTF.preload("/model/scene.gltf");
-useTexture.preload("/matcap/mat-5.png");
-useTexture.preload("/matcap/mat-7.png");
-useTexture.preload("/matcap/mat-18.png");
-useTexture.preload("/matcap/mat-19.png");
 
 // Evaluates precise target X coordinate, dynamic spin, and banking lean across project cards
 const PROJ_LEFT_X = -2.40;
@@ -728,10 +851,57 @@ function getProjectState(scrollY) {
   return { targetX: 0, spinY: -Math.PI * 4, bankZ: 0 };
 }
 
+// On mobile devices (without mouse cursor hover), automatically apply corresponding MatCaps as user scrolls through sections
+function getMobileScrollMatcap(scrollY) {
+  // Hero / Welcome: clean authentic model (no matcap)
+  if (scrollY < 850) {
+    return null;
+  }
+  // Work Experience Section: DRDO (Sunset Amber), Relux (Neon Violet), HashTrust (Gold)
+  if (scrollY < 1450) {
+    return "/matcap/mat-18.png";
+  }
+  if (scrollY < 2050) {
+    return "/matcap/mat-7.png";
+  }
+  if (scrollY < 2550) {
+    return "/matcap/mat-19.png";
+  }
+  // Sliding Marquee Banner & Project 1 (Daily)
+  if (scrollY < 3600) {
+    return "/matcap/mat-19.png";
+  }
+  // Project 2 (Content Crafter)
+  if (scrollY < 4100) {
+    return "/matcap/mat-18.png";
+  }
+  // Project 3 (Social Tree)
+  if (scrollY < 4600) {
+    return "/matcap/mat-7.png";
+  }
+  // Project 4 (Tiny Link)
+  if (scrollY < 5100) {
+    return "/matcap/mat-5.png";
+  }
+  // Project 5 (Secure Pass)
+  if (scrollY < 5600) {
+    return "/matcap/mat-18.png";
+  }
+  // Skills Section
+  if (scrollY < 6450) {
+    return "/matcap/mat-7.png";
+  }
+  // Education Section
+  if (scrollY < 7350) {
+    return "/matcap/mat-19.png";
+  }
+  // Face Zoom & Footer / Contact
+  return null;
+}
+
 export default function CanvasScene() {
-  const [selectedMatcap, setSelectedMatcap] = useState("/matcap/mat-5.png");
-  const [isPickerOpen, setIsPickerOpen] = useState(false);
-  const currentMatcapRef = useRef("/matcap/mat-5.png");
+  const [selectedMatcap, setSelectedMatcap] = useState(null); // Default: NO MATCAP on desktop; auto on mobile scroll
+  const currentMobileMatcapRef = useRef(null);
 
   const tiltProgress = useRef(0);
   const shiftProgress = useRef(0);
@@ -750,6 +920,17 @@ export default function CanvasScene() {
   useEffect(() => {
     const handleScroll = () => {
       const scrollY = window.scrollY;
+      const isMobile = window.innerWidth < 768;
+
+      // On mobile devices: automatically synchronize MatCap to current scroll section
+      if (isMobile) {
+        const targetMobileMatcap = getMobileScrollMatcap(scrollY);
+        if (targetMobileMatcap !== currentMobileMatcapRef.current) {
+          currentMobileMatcapRef.current = targetMobileMatcap;
+          setSelectedMatcap(targetMobileMatcap);
+        }
+      }
+
       // Phase 1: Swoop from Top to Front over 0px -> 320px
       tiltProgress.current = Math.min(Math.max(scrollY / 320, 0), 1);
       // Phase 2: Shift from Center (Mid) to Left over 0px -> 450px
@@ -775,41 +956,46 @@ export default function CanvasScene() {
       skillsProgress.current = Math.min(Math.max((scrollY - 5550) / 300, 0), 1);
       // Phase 10: Face zoom and footer emergence over 7350px -> 8400px
       headZoomProgress.current = Math.min(Math.max((scrollY - 7350) / 950, 0), 1);
+    };
 
-      // --- SECTION-BASED MATCAP AUTOMATION ---
-      // Welcome Section (0 - 200px): mat-5 (Pearl Silver)
-      // Hero Section (200px - 850px): mat-7 (Neon Violet)
-      // Experience Section (850px - 2550px): mat-18 (Sunset Amber)
-      // Sliding Icons & Projects Section (2550px+): mat-19 (Polished Gold)
-      let activeMatcap = "/matcap/mat-5.png";
-      if (scrollY >= 2550) {
-        activeMatcap = "/matcap/mat-19.png";
-      } else if (scrollY >= 850) {
-        activeMatcap = "/matcap/mat-18.png";
-      } else if (scrollY >= 200) {
-        activeMatcap = "/matcap/mat-7.png";
-      } else {
-        activeMatcap = "/matcap/mat-5.png";
+    const handleMatcapHover = (e) => {
+      const isMobile = typeof window !== "undefined" && window.innerWidth < 768;
+      // On desktop: hover controls the MatCap; on mobile: scroll controls it
+      if (!isMobile) {
+        const matcap = e.detail;
+        setSelectedMatcap(matcap || null);
       }
+    };
 
-      if (activeMatcap !== currentMatcapRef.current) {
-        currentMatcapRef.current = activeMatcap;
-        setSelectedMatcap(activeMatcap);
+    const handleResize = () => {
+      const isMobile = window.innerWidth < 768;
+      if (!isMobile) {
+        currentMobileMatcapRef.current = null;
+        setSelectedMatcap(null);
+      } else {
+        const targetMobileMatcap = getMobileScrollMatcap(window.scrollY);
+        currentMobileMatcapRef.current = targetMobileMatcap;
+        setSelectedMatcap(targetMobileMatcap);
       }
     };
 
     window.addEventListener("scroll", handleScroll, { passive: true });
+    window.addEventListener("resize", handleResize, { passive: true });
+    window.addEventListener("portfolio-hover-matcap", handleMatcapHover);
     handleScroll();
-    return () => window.removeEventListener("scroll", handleScroll);
+    return () => {
+      window.removeEventListener("scroll", handleScroll);
+      window.removeEventListener("resize", handleResize);
+      window.removeEventListener("portfolio-hover-matcap", handleMatcapHover);
+    };
   }, []);
-
-  const activeMatcapConfig = ALLOWED_MATCAPS.find((m) => m.file === selectedMatcap) || ALLOWED_MATCAPS[0];
 
   return (
     <div className="relative w-full h-full">
       <Canvas
         camera={{ position: [0, 3.8, 0.3], fov: 45 }}
-        gl={{ antialias: true, alpha: true }}
+        dpr={typeof window !== "undefined" && window.innerWidth < 768 ? [1, 1.5] : [1, 2]}
+        gl={{ antialias: true, alpha: true, powerPreference: "high-performance" }}
       >
         <ambientLight intensity={1.5} />
         {/* Overhead light for top-down view */}
@@ -844,97 +1030,8 @@ export default function CanvasScene() {
           projectsProgress={projectsProgress}
         />
       </Canvas>
-
-      {/* Floating Section MatCap Switcher (Allowed: mat-5, mat-7, mat-18, mat-19) */}
-      <div className="fixed bottom-6 left-6 z-50 pointer-events-auto flex flex-col items-start gap-2">
-        {isPickerOpen ? (
-          <div className="bg-zinc-950/95 backdrop-blur-xl border border-purple-500/30 rounded-2xl p-3.5 shadow-2xl flex flex-col gap-3 min-w-[280px]">
-            <div className="flex items-center justify-between gap-4 pb-2 border-b border-white/10">
-              <div className="flex items-center gap-2">
-                <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse" />
-                <span className="text-xs font-semibold text-zinc-200 tracking-wide">
-                  Section MatCaps (4)
-                </span>
-              </div>
-              <button
-                type="button"
-                onClick={() => setIsPickerOpen(false)}
-                className="text-zinc-400 hover:text-white text-xs p-1 rounded-md hover:bg-white/10 transition-colors"
-                title="Close"
-              >
-                ✕
-              </button>
-            </div>
-
-            <div className="grid grid-cols-2 gap-2.5">
-              {ALLOWED_MATCAPS.map((item) => {
-                const isActive = selectedMatcap === item.file;
-                return (
-                  <button
-                    key={item.id}
-                    type="button"
-                    onClick={() => {
-                      currentMatcapRef.current = item.file;
-                      setSelectedMatcap(item.file);
-                    }}
-                    className={`group relative flex items-center gap-2.5 p-2 rounded-xl border text-left transition-all ${isActive
-                      ? "bg-purple-600/25 border-purple-400/80 shadow-lg shadow-purple-500/20 scale-[1.02]"
-                      : "bg-white/[0.03] border-white/10 hover:border-white/20 hover:bg-white/[0.06]"
-                      }`}
-                  >
-                    <div className="w-9 h-9 rounded-full overflow-hidden border border-white/25 shadow-md bg-black shrink-0">
-                      <img
-                        src={item.file}
-                        alt={item.name}
-                        className="w-full h-full object-cover"
-                        loading="lazy"
-                      />
-                    </div>
-                    <div className="flex flex-col min-w-0">
-                      <span className="text-xs font-semibold text-white truncate">
-                        {item.id}
-                      </span>
-                      <span className="text-[10px] text-zinc-400 font-mono truncate">
-                        {item.section}
-                      </span>
-                    </div>
-                  </button>
-                );
-              })}
-            </div>
-
-            <p className="text-[10px] text-zinc-400 text-center pt-1 border-t border-white/5">
-              Changes automatically as you scroll through sections
-            </p>
-          </div>
-        ) : (
-          <button
-            type="button"
-            onClick={() => setIsPickerOpen(true)}
-            className="group flex items-center gap-2.5 px-3.5 py-2 rounded-full bg-zinc-950/85 backdrop-blur-md border border-purple-500/30 hover:border-purple-400/60 shadow-lg hover:shadow-purple-500/20 transition-all"
-          >
-            <div className="w-6 h-6 rounded-full overflow-hidden border border-white/30 shadow bg-black shrink-0">
-              <img
-                src={selectedMatcap}
-                alt="Active MatCap"
-                className="w-full h-full object-cover"
-              />
-            </div>
-            <div className="flex items-center gap-1.5 text-xs">
-              <span className="text-zinc-400">MatCap:</span>
-              <span className="font-semibold text-purple-300">
-                {activeMatcapConfig.id}
-              </span>
-              <span className="text-[10px] text-zinc-400 font-mono">
-                ({activeMatcapConfig.section})
-              </span>
-            </div>
-            <span className="text-zinc-400 text-[10px] group-hover:translate-y-0.5 transition-transform">
-              ▾
-            </span>
-          </button>
-        )}
-      </div>
     </div>
   );
 }
+
+useGLTF.preload("/model/scene.gltf");
